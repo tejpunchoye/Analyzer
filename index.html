@@ -1131,8 +1131,44 @@
         }
       }
       @media (max-width: 560px) {
+        .pred-right { min-width: 88px; }
+        /* On small screens the card reflows into two rows:
+           Row 1 — stars + vs + slip btn (top strip)
+           Row 2 — team names full width
+           Row 3 — prediction label + percentages */
+        .fixture-top {
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .star-rating {
+          width: auto;
+          order: 0;
+        }
+        .teams-row {
+          order: 2;
+          width: 100%;
+          flex: none;
+        }
         .pred-right {
-          min-width: 96px;
+          order: 1;
+          flex: 1;
+          align-items: flex-end;
+          min-width: 0;
+        }
+        .slip-btn {
+          order: 3;
+          /* pushed to end of top strip */
+          margin-left: auto;
+        }
+        .team-name {
+          font-size: 13px;
+          white-space: normal;
+          word-break: break-word;
+          overflow: visible;
+          text-overflow: unset;
+        }
+        .vs-area {
+          padding: 0 8px;
         }
       }
 
@@ -1140,84 +1176,36 @@
 
       /* ── Bet slip nav button in sidebar ── */
       .bet-nav-btn {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 12px;
-        border-radius: 9px;
-        margin: 0 18px 10px;
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        color: var(--text-muted);
-        font-size: 12.5px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.15s;
-        text-decoration: none;
+        display: flex; align-items: center; gap: 8px;
+        padding: 10px 12px; border-radius: 9px; margin: 0 18px 10px;
+        background: var(--surface2); border: 1px solid var(--border);
+        color: var(--text-muted); font-size: 12.5px; font-weight: 600;
+        cursor: pointer; transition: all 0.15s; text-decoration: none;
         font-family: var(--sans);
       }
-      .bet-nav-btn:hover {
-        border-color: var(--accent);
-        color: var(--accent);
-        background: var(--accent-dim);
-      }
-      .bet-nav-icon {
-        font-size: 14px;
-      }
+      .bet-nav-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+      .bet-nav-icon { font-size: 14px; }
 
       /* ── Add-to-slip button on fixture cards ── */
       .slip-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        border-radius: 6px;
-        flex-shrink: 0;
-        border: 1px solid var(--border);
-        background: var(--surface2);
-        color: var(--text-dim);
-        font-size: 14px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.15s;
-        line-height: 1;
+        display: flex; align-items: center; justify-content: center;
+        width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+        border: 1px solid var(--border); background: var(--surface2);
+        color: var(--text-dim); font-size: 14px; font-weight: 700;
+        cursor: pointer; transition: all .15s; line-height: 1;
         font-family: var(--sans);
       }
-      .slip-btn:hover {
-        border-color: var(--accent);
-        color: var(--accent);
-        background: var(--accent-dim);
-      }
-      .slip-btn.added {
-        border-color: var(--win);
-        color: var(--win);
-        background: var(--win-dim);
-      }
+      .slip-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+      .slip-btn.added { border-color: var(--win); color: var(--win); background: var(--win-dim); }
       /* Toast for bet-slip feedback */
       .slip-toast {
-        position: fixed;
-        bottom: 22px;
-        left: 50%;
-        transform: translateX(-50%) translateY(10px);
-        background: var(--surface2);
-        border: 1px solid var(--border-strong);
-        color: var(--text);
-        padding: 10px 18px;
-        border-radius: 9px;
-        font-size: 12.5px;
-        font-weight: 600;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-        z-index: 10000;
-        opacity: 0;
-        transition: all 0.22s;
-        pointer-events: none;
-        white-space: nowrap;
+        position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(10px);
+        background: var(--surface2); border: 1px solid var(--border-strong);
+        color: var(--text); padding: 10px 18px; border-radius: 9px;
+        font-size: 12.5px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,.5);
+        z-index: 10000; opacity: 0; transition: all .22s; pointer-events: none; white-space: nowrap;
       }
-      .slip-toast.show {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
+      .slip-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
   </head>
   <body>
@@ -2015,10 +2003,10 @@
             <span class="prob-pct ${outcome === "away" ? "active" : ""}">A ${probAway}%</span>
           </div>
         </div>
-        <button class="slip-btn ${alreadyAdded ? "added" : ""}"
-          title="${alreadyAdded ? "Already in bet slip" : "Add to bet slip"}"
+        <button class="slip-btn ${alreadyAdded ? 'added' : ''}"
+          title="${alreadyAdded ? 'Already in bet slip' : 'Add to bet slip'}"
           onclick="event.stopPropagation(); addToSlip(${i}, this)"
-        >${alreadyAdded ? "✓" : "+"}</button>
+        >${alreadyAdded ? '✓' : '+'}</button>
       </div>
       <div class="fixture-bottom">
         <div class="form-row">${dots(homeForm)}</div>
@@ -2672,28 +2660,23 @@
       // predictionCache lives only in JS memory and dies on navigation.
       // We mirror it to sessionStorage so returning from the bet slip page
       // restores all loaded leagues instantly without any API calls.
-      const SESSION_CACHE_KEY = "fixture_ai_pred_cache";
-      const SESSION_GW_KEY = "fixture_ai_auto_gw";
-      const SESSION_STATE_KEY = "fixture_ai_league_states";
+      const SESSION_CACHE_KEY = 'fixture_ai_pred_cache';
+      const SESSION_GW_KEY    = 'fixture_ai_auto_gw';
+      const SESSION_STATE_KEY = 'fixture_ai_league_states';
 
       function persistCacheToSession() {
         try {
           // sessionStorage has ~5MB limit; we only store what we need to
           // re-render (no raw API data, just computed prediction objects).
-          sessionStorage.setItem(
-            SESSION_CACHE_KEY,
-            JSON.stringify(predictionCache),
-          );
-          sessionStorage.setItem(SESSION_GW_KEY, JSON.stringify(autoGwCache));
+          sessionStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(predictionCache));
+          sessionStorage.setItem(SESSION_GW_KEY,    JSON.stringify(autoGwCache));
           // Store which leagues are ready so we can restore status dots
           const states = {};
-          LEAGUES.forEach((l) => {
-            states[l.code] = leagueReadyState[l.code];
-          });
+          LEAGUES.forEach(l => { states[l.code] = leagueReadyState[l.code]; });
           sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(states));
-        } catch (e) {
+        } catch(e) {
           // sessionStorage full or unavailable — silently skip; app still works
-          console.warn("Could not persist cache to sessionStorage:", e.message);
+          console.warn('Could not persist cache to sessionStorage:', e.message);
         }
       }
 
@@ -2707,19 +2690,16 @@
             // Merge into predictionCache (don't overwrite anything already in memory)
             Object.assign(predictionCache, parsed);
           }
-          if (gws) Object.assign(autoGwCache, JSON.parse(gws));
+          if (gws)  Object.assign(autoGwCache, JSON.parse(gws));
           if (sts) {
             const states = JSON.parse(sts);
-            Object.keys(states).forEach((code) => {
+            Object.keys(states).forEach(code => {
               leagueReadyState[code] = states[code];
             });
           }
           return !!raw; // true = we had data
-        } catch (e) {
-          console.warn(
-            "Could not restore cache from sessionStorage:",
-            e.message,
-          );
+        } catch(e) {
+          console.warn('Could not restore cache from sessionStorage:', e.message);
           return false;
         }
       }
@@ -2740,50 +2720,46 @@
 
         // Mark any league that already has a cache entry as ready
         // so it lights up immediately and is clickable.
-        LEAGUES.forEach((l) => {
+        LEAGUES.forEach(l => {
           const gwKey = `${l.code}_${currentSeason}`;
           const gw = autoGwCache[gwKey];
           if (gw && predictionCache[cacheKey(l.code, currentSeason, gw)]) {
-            leagueReadyState[l.code] = "ready";
-          } else if (leagueReadyState[l.code] !== "ready") {
-            leagueReadyState[l.code] = "queued";
+            leagueReadyState[l.code] = 'ready';
+          } else if (leagueReadyState[l.code] !== 'ready') {
+            leagueReadyState[l.code] = 'queued';
           }
         });
         renderLeagueDropdown();
 
         // ── Show the first already-cached league immediately ──
-        const firstCached = LEAGUES.find(
-          (l) => leagueReadyState[l.code] === "ready",
-        );
+        const firstCached = LEAGUES.find(l => leagueReadyState[l.code] === 'ready');
         if (firstCached) {
           currentLeague = firstCached.code;
           const lMeta = LEAGUE_MAP[firstCached.code];
-          document.getElementById("activeLeagueFlag").textContent = lMeta.flag;
-          document.getElementById("activeLeagueText").textContent = lMeta.name;
+          document.getElementById('activeLeagueFlag').textContent = lMeta.flag;
+          document.getElementById('activeLeagueText').textContent = lMeta.name;
           const gwKey = `${firstCached.code}_${currentSeason}`;
           const gw = autoGwCache[gwKey];
-          const cached =
-            predictionCache[cacheKey(firstCached.code, currentSeason, gw)];
+          const cached = predictionCache[cacheKey(firstCached.code, currentSeason, gw)];
           if (cached) applyCachedResult(cached, firstCached.code, gw);
         }
 
         // ── Load any league that isn't cached yet ──
         for (let i = 0; i < LEAGUES.length; i++) {
           const league = LEAGUES[i].code;
-          const gwKey = `${league}_${currentSeason}`;
-          const gw = autoGwCache[gwKey];
+          const gwKey  = `${league}_${currentSeason}`;
+          const gw     = autoGwCache[gwKey];
 
           // Skip if already cached
-          if (gw && predictionCache[cacheKey(league, currentSeason, gw)])
-            continue;
+          if (gw && predictionCache[cacheKey(league, currentSeason, gw)]) continue;
 
           const isVisible = !firstCached && i === 0;
 
           if (isVisible) {
             currentLeague = league;
             const l = LEAGUE_MAP[league];
-            document.getElementById("activeLeagueFlag").textContent = l.flag;
-            document.getElementById("activeLeagueText").textContent = l.name;
+            document.getElementById('activeLeagueFlag').textContent = l.flag;
+            document.getElementById('activeLeagueText').textContent = l.name;
             await loadLeague(league, null, { silent: false });
           } else {
             await loadLeague(league, null, { silent: true });
@@ -2794,27 +2770,20 @@
       }
 
       // ── Bet slip helpers ──
-      const SLIP_KEY = "fixture_ai_bets";
+      const SLIP_KEY = 'fixture_ai_bets';
       function loadSlip() {
-        try {
-          return JSON.parse(localStorage.getItem(SLIP_KEY) || "[]");
-        } catch {
-          return [];
-        }
+        try { return JSON.parse(localStorage.getItem(SLIP_KEY) || '[]'); }
+        catch { return []; }
       }
-      function saveSlip(bets) {
-        localStorage.setItem(SLIP_KEY, JSON.stringify(bets));
-      }
-      function isInSlip(slipId) {
-        return loadSlip().some((b) => b.slipId === slipId);
-      }
+      function saveSlip(bets) { localStorage.setItem(SLIP_KEY, JSON.stringify(bets)); }
+      function isInSlip(slipId) { return loadSlip().some(b => b.slipId === slipId); }
 
       function showSlipToast(msg) {
-        const el = document.getElementById("slipToast");
+        const el = document.getElementById('slipToast');
         if (!el) return;
         el.textContent = msg;
-        el.classList.add("show");
-        setTimeout(() => el.classList.remove("show"), 2400);
+        el.classList.add('show');
+        setTimeout(() => el.classList.remove('show'), 2400);
       }
 
       function addToSlip(idx, btn) {
@@ -2822,18 +2791,11 @@
         if (!p) return;
         const { match, prediction } = p;
         const slipId = `${match.homeTeam.id}_${match.awayTeam.id}_${currentGW}_${currentLeague}`;
-        if (isInSlip(slipId)) {
-          showSlipToast("Already in bet slip");
-          return;
-        }
-        const pick =
-          prediction.outcome === "home"
-            ? "Home Win"
-            : prediction.outcome === "away"
-              ? "Away Win"
-              : "Draw";
+        if (isInSlip(slipId)) { showSlipToast('Already in bet slip'); return; }
+        const pick = prediction.outcome === 'home' ? 'Home Win'
+          : prediction.outcome === 'away' ? 'Away Win' : 'Draw';
         const bet = {
-          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2,5),
           slipId,
           league: currentLeague,
           homeTeam: match.homeTeam.shortName || match.homeTeam.name,
@@ -2841,33 +2803,25 @@
           matchDate: match.utcDate || null,
           pick,
           gameweek: currentGW,
-          odds: null,
-          stake: null,
-          notes: null,
-          status: "pending",
+          odds: null, stake: null, notes: null,
+          status: 'pending',
           addedAt: new Date().toISOString(),
           predProbHome: prediction.probHome,
           predProbDraw: prediction.probDraw,
           predProbAway: prediction.probAway,
-          predConfidence: prediction.confidence,
+          predConfidence: prediction.confidence
         };
         const bets = loadSlip();
         bets.unshift(bet);
         saveSlip(bets);
-        if (btn) {
-          btn.textContent = "✓";
-          btn.classList.add("added");
-          btn.title = "Already in bet slip";
-        }
-        showSlipToast(
-          "✓ " + bet.homeTeam + " vs " + bet.awayTeam + " added to slip",
-        );
+        if (btn) { btn.textContent = '✓'; btn.classList.add('added'); btn.title = 'Already in bet slip'; }
+        showSlipToast('✓ ' + bet.homeTeam + ' vs ' + bet.awayTeam + ' added to slip');
       }
 
       // ── Init ──
       renderLeagueDropdown();
       startSequentialPreload();
     </script>
-    <div class="slip-toast" id="slipToast"></div>
+  <div class="slip-toast" id="slipToast"></div>
   </body>
 </html>
