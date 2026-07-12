@@ -1,0 +1,1498 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fixture Intelligence — Football Prediction Engine</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0d;
+      --surface: #15151b;
+      --surface2: #1c1c24;
+      --surface3: #25252f;
+      --border: #2c2c3a;
+      --border-strong: #3d3d52;
+      --text: #f5f5fa;
+      --text-muted: #b4b4c6;
+      --text-dim: #80809a;
+      --accent: #7c74ff;
+      --accent-dim: rgba(124,116,255,0.14);
+      --accent-glow: rgba(124,116,255,0.32);
+      --win: #3ddc97;
+      --draw: #ffc94d;
+      --loss: #ff6b6b;
+      --win-dim: rgba(61,220,151,0.14);
+      --draw-dim: rgba(255,201,77,0.14);
+      --loss-dim: rgba(255,107,107,0.14);
+      --mono: "JetBrains Mono", monospace;
+      --sans: "Inter", sans-serif;
+    }
+    html { font-size: 14px; background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+    body { padding: 0; min-height: 100vh; }
+    button { cursor: pointer; border: none; background: none; font-family: var(--sans); color: inherit; }
+    select { font-family: var(--sans); }
+
+    /* ── Layout ── */
+    .shell { display: grid; grid-template-columns: 250px 1fr; min-height: 100vh; }
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .main { padding: 28px 32px; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+    /* ── Sidebar ── */
+    .logo { padding: 22px 18px 20px; border-bottom: 1px solid var(--border); }
+    .logo-eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; }
+    .logo-name { font-size: 18px; font-weight: 700; color: var(--text); line-height: 1.2; }
+    .logo-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 3px; }
+
+    .nav-section { padding: 16px 18px 8px; }
+    .nav-label { font-size: 10px; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; color: var(--text-dim); }
+
+    /* League dropdown */
+    .league-dropdown-wrap { padding: 6px 18px 4px; position: relative; }
+    .league-dropdown-btn {
+      width: 100%; display: flex; align-items: center; gap: 10px;
+      padding: 11px 12px; border-radius: 9px;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); font-size: 13.5px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .league-dropdown-btn:hover { border-color: var(--border-strong); }
+    .league-dropdown-btn.open { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+    .league-dropdown-flag { font-size: 16px; flex-shrink: 0; }
+    .league-dropdown-text { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .league-dropdown-chev { width: 11px; height: 11px; flex-shrink: 0; transition: transform 0.18s; color: var(--text-dim); }
+    .league-dropdown-btn.open .league-dropdown-chev { transform: rotate(180deg); }
+
+    .league-dropdown-panel {
+      position: absolute; left: 18px; right: 18px; top: calc(100% + 4px);
+      background: var(--surface3); border: 1px solid var(--border-strong);
+      border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+      z-index: 50; max-height: 0; overflow: hidden;
+      opacity: 0; transition: max-height 0.22s ease, opacity 0.18s ease;
+      padding: 0 4px;
+    }
+    .league-dropdown-panel.open { max-height: 420px; opacity: 1; padding: 6px 4px; overflow-y: auto; }
+
+    .league-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 10px; border-radius: 7px;
+      font-size: 12.5px; color: var(--text-muted);
+      cursor: pointer; transition: all 0.12s; width: 100%; text-align: left;
+      position: relative;
+    }
+    .league-item:hover:not(.disabled) { background: var(--surface2); color: var(--text); }
+    .league-item.active { background: var(--accent-dim); color: var(--accent); font-weight: 600; }
+    .league-item.disabled { color: var(--text-dim); opacity: 0.42; cursor: not-allowed; }
+    .league-item-flag { font-size: 14px; line-height: 1; flex-shrink: 0; }
+    .league-item-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .league-item-status { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--text-dim); }
+    .league-item-status.ready { background: var(--win); box-shadow: 0 0 6px var(--win); }
+    .league-item-status.loading { background: var(--draw); animation: pulseDot 1s infinite; }
+    @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .sidebar-sep { height: 1px; background: var(--border); margin: 14px 18px; }
+
+    .season-section { padding: 0 18px 14px; }
+    .season-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+    .season-select {
+      width: 100%; padding: 9px 12px; border-radius: 9px;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer;
+      appearance: none; outline: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2380809a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+      padding-right: 30px;
+    }
+    .season-select:focus { border-color: var(--accent); }
+    .season-note { font-size: 10.5px; color: var(--text-dim); margin-top: 7px; line-height: 1.5; }
+
+    .sidebar-footer { margin-top: auto; padding: 14px 18px; border-top: 1px solid var(--border); }
+    .refresh-btn {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 10px 14px; border-radius: 9px;
+      background: var(--accent-dim); color: var(--accent);
+      font-size: 12.5px; font-weight: 600; border: 1px solid var(--accent-glow);
+      width: 100%; transition: all 0.18s; cursor: pointer; font-family: var(--sans);
+    }
+    .refresh-btn:hover { background: rgba(124,116,255,0.22); }
+    .refresh-btn:disabled { opacity: 0.4; pointer-events: none; }
+    .rate-hint { font-size: 10.5px; color: var(--text-dim); text-align: center; margin-top: 8px; line-height: 1.5; }
+    .spin { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Header ── */
+    .page-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .page-title { font-size: 21px; font-weight: 700; color: var(--text); }
+    .page-sub { font-size: 13.5px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+    .header-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .gw-selector { display: flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 6px 9px; }
+    .gw-label { font-size: 11.5px; color: var(--text-muted); font-weight: 600; }
+    .gw-btn { width: 25px; height: 25px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 15px; cursor: pointer; transition: all 0.14s; }
+    .gw-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .gw-btn:disabled { opacity: 0.4; pointer-events: none; }
+    .gw-num {
+      font-size: 14.5px; font-weight: 700; font-family: var(--mono); color: var(--text);
+      width: 36px; text-align: center; background: transparent; border: none; outline: none;
+      -moz-appearance: textfield; cursor: text;
+    }
+    .gw-num::-webkit-outer-spin-button,
+    .gw-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .gw-num:focus { color: var(--accent); }
+    .gw-auto-badge { font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--win); background: var(--win-dim); padding: 2px 7px; border-radius: 10px; }
+
+    /* ── Overall progress bar ── */
+    .overall-progress-wrap {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 18px; display: none;
+    }
+    .overall-progress-wrap.visible { display: block; }
+    .overall-progress-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+    .overall-progress-title { font-size: 12.5px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .overall-progress-spinner { width: 13px; height: 13px; border: 2px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+    .overall-progress-pct { font-size: 13px; font-weight: 700; font-family: var(--mono); color: var(--accent); }
+    .overall-progress-track { height: 7px; background: var(--surface3); border-radius: 4px; overflow: hidden; }
+    .overall-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #a89aff); border-radius: 4px; transition: width 0.35s ease; }
+    .overall-progress-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; font-weight: 500; }
+
+    /* ── Filters ── */
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+    .section-title { font-size: 12.5px; font-weight: 700; color: var(--text); letter-spacing: 0.05em; text-transform: uppercase; }
+    .filter-tabs { display: flex; gap: 3px; }
+    .filter-tab { padding: 5px 12px; border-radius: 6px; font-size: 11.5px; font-weight: 600; color: var(--text-muted); cursor: pointer; border: 1px solid transparent; transition: all 0.14s; }
+    .filter-tab:hover { color: var(--text); }
+    .filter-tab.active { background: var(--surface2); border-color: var(--border-strong); color: var(--text); }
+
+    /* ── Fixture cards ── */
+    .fixtures-grid { display: flex; flex-direction: column; gap: 6px; }
+    .fixture-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 11px 16px;
+      cursor: pointer; transition: all 0.18s;
+      position: relative; overflow: hidden;
+    }
+    .fixture-card:hover { border-color: var(--border-strong); background: var(--surface2); transform: translateY(-1px); box-shadow: 0 6px 22px rgba(0,0,0,0.35); }
+
+    /* Result glow: once a fixture has finished, a very light border glow
+       shows whether the prediction was correct (green) or missed (red) —
+       no text badge, just an ambient cue. */
+    .fixture-card.result-correct { box-shadow: 0 0 0 1px rgba(61,220,151,0.4), 0 0 14px rgba(61,220,151,0.18); border-color: rgba(61,220,151,0.4); }
+    .fixture-card.result-correct:hover { box-shadow: 0 0 0 1px rgba(61,220,151,0.55), 0 0 18px rgba(61,220,151,0.25); }
+    .fixture-card.result-incorrect { box-shadow: 0 0 0 1px rgba(255,107,107,0.4), 0 0 14px rgba(255,107,107,0.18); border-color: rgba(255,107,107,0.4); }
+    .fixture-card.result-incorrect:hover { box-shadow: 0 0 0 1px rgba(255,107,107,0.55), 0 0 18px rgba(255,107,107,0.25); }
+
+    .fixture-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+    /* Star rating, top-left of each card */
+    .star-rating { display: flex; gap: 1px; flex-shrink: 0; width: 64px; }
+    .star { font-size: 11px; color: var(--border-strong); line-height: 1; }
+    .star.filled { color: var(--draw); }
+
+    .teams-row { display: flex; align-items: center; flex: 1; min-width: 0; }
+    .team-block { flex: 1; min-width: 0; }
+    .team-block.away { text-align: right; }
+    .team-name { font-size: 13.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .team-rank { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; font-family: var(--mono); font-weight: 500; }
+    .vs-area { display: flex; flex-direction: column; align-items: center; padding: 0 12px; flex-shrink: 0; }
+    .vs-label { font-size: 10px; color: var(--text-dim); font-family: var(--mono); font-weight: 600; }
+    .score-display { font-size: 11px; font-family: var(--mono); color: var(--text-muted); margin-top: 2px; font-weight: 600; }
+
+    .pred-right { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; gap: 3px; min-width: 122px; }
+    .pred-outcome-label { font-size: 12px; font-weight: 800; letter-spacing: 0.03em; }
+    .pred-outcome-label.home { color: var(--win); }
+    .pred-outcome-label.draw { color: var(--draw); }
+    .pred-outcome-label.away { color: var(--loss); }
+
+    /* Percentages rearranged into a single compact row: H / D / A inline */
+    .prob-pcts-row { display: flex; gap: 7px; }
+    .prob-pct { font-size: 10.5px; font-family: var(--mono); color: var(--text-dim); font-weight: 600; }
+    .prob-pct.active { color: var(--text); font-weight: 800; }
+
+    .fixture-bottom { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--border); display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; }
+    .form-row { display: flex; gap: 3px; align-items: center; }
+    .form-row.right { justify-content: flex-end; }
+    .form-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .form-dot.W { background: var(--win); }
+    .form-dot.D { background: var(--draw); }
+    .form-dot.L { background: var(--loss); }
+    .fixture-meta { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .fixture-date { font-size: 10px; color: var(--text-muted); font-family: var(--mono); font-weight: 600; }
+
+    /* ── Detail overlay ── */
+    .detail-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.78);
+      z-index: 100; display: flex; align-items: center; justify-content: center;
+      padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .detail-overlay.open { opacity: 1; pointer-events: all; }
+    .detail-panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; width: 100%; max-width: 740px;
+      max-height: 90vh; overflow-y: auto; padding: 24px 28px;
+    }
+    .detail-close { float: right; width: 27px; height: 27px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); font-size: 14px; margin-bottom: -27px; margin-left: auto; z-index: 1; position: sticky; top: 0; }
+    .detail-close:hover { color: var(--text); border-color: var(--border-strong); }
+
+    .detail-eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 18px; }
+    .match-headline { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 22px; }
+    .headline-team { text-align: center; flex: 1; }
+    .headline-name { font-size: 18px; font-weight: 700; color: var(--text); }
+    .headline-pos { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-family: var(--mono); font-weight: 600; }
+    .headline-vs { font-size: 18px; color: var(--border-strong); font-weight: 300; }
+
+    .verdict-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; }
+    .verdict-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+    .verdict-result { font-size: 17px; font-weight: 800; }
+    .verdict-result.home { color: var(--win); }
+    .verdict-result.draw { color: var(--draw); }
+    .verdict-result.away { color: var(--loss); }
+    .verdict-conf-badge { font-size: 12.5px; font-family: var(--mono); color: var(--text); font-weight: 700; background: var(--surface3); padding: 4px 10px; border-radius: 20px; }
+    .verdict-reason { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; font-weight: 500; }
+
+    .threeway { display: flex; gap: 3px; margin-top: 13px; height: 7px; border-radius: 3px; overflow: hidden; }
+    .threeway-home { background: var(--win); transition: flex 0.4s; }
+    .threeway-draw { background: var(--draw); transition: flex 0.4s; }
+    .threeway-away { background: var(--loss); transition: flex 0.4s; }
+    .threeway-labels { display: flex; justify-content: space-between; margin-top: 6px; }
+    .tw-label { font-size: 10.5px; font-family: var(--mono); color: var(--text-muted); font-weight: 600; }
+    .tw-label.home { color: var(--win); }
+    .tw-label.away { color: var(--loss); }
+
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+    .detail-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 14px 15px; }
+    .detail-block-title { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 11px; }
+    .metric-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+    .metric-label { font-size: 12.5px; color: var(--text-muted); font-weight: 500; }
+    .metric-val { font-size: 12.5px; font-weight: 700; font-family: var(--mono); color: var(--text); }
+
+    .section-subtitle { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); margin: 18px 0 9px; }
+    .recent-matches { display: flex; flex-direction: column; gap: 5px; }
+    .recent-match { display: flex; align-items: center; gap: 10px; padding: 8px 11px; border-radius: 7px; background: var(--surface2); font-size: 12.5px; }
+    .rm-result { width: 22px; height: 22px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 800; flex-shrink: 0; }
+    .rm-result.W { background: var(--win-dim); color: var(--win); }
+    .rm-result.D { background: var(--draw-dim); color: var(--draw); }
+    .rm-result.L { background: var(--loss-dim); color: var(--loss); }
+    .rm-opp { flex: 1; color: var(--text); font-weight: 500; }
+    .rm-opp-rank { color: var(--text-muted); font-size: 10.5px; font-family: var(--mono); }
+    .rm-score { font-family: var(--mono); color: var(--text); font-weight: 700; }
+    .rm-weight { font-size: 10px; padding: 3px 7px; border-radius: 4px; font-family: var(--mono); flex-shrink: 0; font-weight: 700; }
+    .rm-weight.hard { background: var(--loss-dim); color: var(--loss); }
+    .rm-weight.mid { background: var(--draw-dim); color: var(--draw); }
+    .rm-weight.easy { background: var(--win-dim); color: var(--win); }
+    .rm-contrib { font-size: 10px; color: var(--text-dim); font-family: var(--mono); width: 48px; text-align: right; flex-shrink: 0; }
+
+    .compare-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .compare-label { font-size: 11px; font-family: var(--mono); color: var(--text); font-weight: 700; width: 46px; flex-shrink: 0; text-align: right; }
+    .compare-label.right { text-align: left; }
+    .compare-track { flex: 1; height: 7px; background: var(--surface3); border-radius: 3px; position: relative; overflow: hidden; }
+    .compare-fill { position: absolute; height: 100%; border-radius: 3px; top: 0; }
+    .compare-fill.left { right: 50%; background: var(--win); }
+    .compare-fill.right { left: 50%; background: var(--loss); }
+    .compare-mid-line { width: 1px; background: var(--border-strong); height: 14px; flex-shrink: 0; }
+    .compare-row-label { font-size: 10.5px; color: var(--text-muted); text-align: center; margin-bottom: 11px; font-weight: 500; }
+
+    /* Methodology box */
+    .method-box { margin-top: 18px; padding: 16px 18px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border); }
+    .method-title { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    .method-step { display: flex; gap: 10px; margin-bottom: 11px; align-items: flex-start; }
+    .method-step:last-child { margin-bottom: 0; }
+    .method-step-num { width: 19px; height: 19px; border-radius: 5px; background: var(--accent-dim); color: var(--accent); font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: var(--mono); }
+    .method-step-text { font-size: 12px; color: var(--text-muted); line-height: 1.55; font-weight: 500; }
+    .method-step-text strong { color: var(--text); font-weight: 700; }
+
+    .formula-box { margin-top: 12px; padding: 11px 13px; border-radius: 7px; background: var(--bg); border: 1px solid var(--border); font-family: var(--mono); font-size: 11px; color: var(--text-muted); line-height: 1.7; overflow-x: auto; white-space: pre; }
+
+    /* ── Loading / Error ── */
+    .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 70px 20px; gap: 14px; color: var(--text-muted); }
+    .loading-spinner { width: 26px; height: 26px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    .loading-title { font-size: 14.5px; font-weight: 600; color: var(--text); }
+    .loading-sub { font-size: 12.5px; color: var(--text-muted); font-weight: 500; }
+
+    .error-state { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.25); border-radius: 10px; padding: 20px; text-align: center; color: var(--loss); }
+    .error-state .err-title { font-size: 14.5px; font-weight: 700; margin-bottom: 6px; }
+    .error-state .err-sub { font-size: 12.5px; color: var(--text-muted); font-weight: 500; }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); font-weight: 500; }
+
+    /* ── Responsive ── */
+    @media (max-width: 860px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
+      .detail-grid { grid-template-columns: 1fr; }
+      .main { padding: 16px; }
+    }
+    @media (max-width: 560px) {
+      .pred-right { min-width: 96px; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-eyebrow">Intelligence</div>
+      <div class="logo-name">Fixture AI</div>
+      <div class="logo-sub">Opponent-Strength Engine</div>
+    </div>
+
+    <div class="nav-section"><div class="nav-label">League</div></div>
+    <div class="league-dropdown-wrap">
+      <button class="league-dropdown-btn" id="leagueDropdownBtn" onclick="toggleLeagueDropdown()">
+        <span class="league-dropdown-flag" id="activeLeagueFlag">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
+        <span class="league-dropdown-text" id="activeLeagueText">Premier League</span>
+        <svg class="league-dropdown-chev" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <div class="league-dropdown-panel" id="leagueDropdownPanel"></div>
+    </div>
+
+    <div class="sidebar-sep"></div>
+    <div class="season-section">
+      <div class="season-label">Season</div>
+      <select class="season-select" id="seasonSelect">
+        <option value="2024">2024/25</option>
+        <option value="2025" selected>2025/26</option>
+      </select>
+      <div class="season-note" id="seasonNote">2025/26 is the current season. 2026/27 begins in ~2 months and has no fixtures yet.</div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="refresh-btn" id="refreshBtn" onclick="handleRefresh()">
+        <svg id="refreshIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        Refresh data
+      </button>
+      <div class="rate-hint">Free API · 10 req/min<br>Leagues grey out until ready</div>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <div class="page-title" id="pageTitle">Premier League</div>
+        <div class="page-sub" id="pageSub">Loading predictions…</div>
+      </div>
+      <div class="header-controls">
+        <div class="gw-selector">
+          <span class="gw-label">Gameweek</span>
+          <button class="gw-btn" id="gwPrev" onclick="changeGW(-1)">−</button>
+          <input class="gw-num" id="gwDisplay" type="number" min="1" max="99" value="—"
+            onchange="changeGWInput(this.value)"
+            onkeydown="if(event.key==='Enter')changeGWInput(this.value)"
+            title="Type a gameweek number and press Enter" />
+          <button class="gw-btn" id="gwNext" onclick="changeGW(+1)">+</button>
+          <span class="gw-auto-badge" id="gwAutoBadge" style="display:none">latest</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overall progress bar -->
+    <div class="overall-progress-wrap" id="overallProgressWrap">
+      <div class="overall-progress-top">
+        <div class="overall-progress-title"><span class="overall-progress-spinner"></span><span id="overallProgressTitle">Loading match data…</span></div>
+        <div class="overall-progress-pct" id="overallProgressPct">0%</div>
+      </div>
+      <div class="overall-progress-track"><div class="overall-progress-fill" id="overallProgressFill" style="width:0%"></div></div>
+      <div class="overall-progress-sub" id="overallProgressSub">Starting…</div>
+    </div>
+
+    <div>
+      <div class="section-header">
+        <div class="section-title">Predictions</div>
+        <div class="filter-tabs">
+          <div class="filter-tab active" onclick="setFilter(this,'all')">All</div>
+          <div class="filter-tab" onclick="setFilter(this,'home')">Home</div>
+          <div class="filter-tab" onclick="setFilter(this,'draw')">Draw</div>
+          <div class="filter-tab" onclick="setFilter(this,'away')">Away</div>
+        </div>
+      </div>
+      <div class="fixtures-grid" id="fixturesGrid">
+        <div class="loading-state">
+          <div class="loading-spinner"></div>
+          <div class="loading-title">Loading…</div>
+          <div class="loading-sub">Fetching match data</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ── Detail overlay ── -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail(event)">
+  <div class="detail-panel" id="detailPanel">
+    <button class="detail-close" onclick="closeDetail()">✕</button>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<script>
+// Requests go through the local Express /fd proxy (server.js)
+// which forwards to api.football-data.org and adds the auth header.
+const API_BASE = "/fd";
+
+// Rate limiter: free tier allows 10 req/min — throttle to 9 to be safe.
+const rateLimiter = {
+  queue: [],
+  max: 9,
+  history: [],
+  async acquire() {
+    return new Promise(resolve => {
+      this.queue.push(resolve);
+      this._drain();
+    });
+  },
+  _drain() {
+    if (this.queue.length === 0) return;
+    const now = Date.now();
+    this.history = this.history.filter(t => now - t < 61000);
+    if (this.history.length >= this.max) {
+      const wait = 61000 - (now - this.history[0]);
+      setTimeout(() => this._drain(), wait + 100);
+      return;
+    }
+    const resolve = this.queue.shift();
+    this.history.push(Date.now());
+    resolve();
+    setTimeout(() => this._drain(), 50);
+  }
+};
+
+async function apiFetch(endpoint) {
+  await rateLimiter.acquire();
+  const res = await fetch(`${API_BASE}${endpoint}`);
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`API ${res.status}${txt ? ': ' + txt.slice(0, 140) : ''}`);
+  }
+  return res.json();
+}
+
+// ── State ──
+let currentLeague = "PL";
+let currentSeason = "2025"; // 2025/26 is the current season
+let currentGW = null;
+let maxGW = 38;
+let minGW = 1;
+let allStandings = {};
+let allMatches = {};
+let recentCache = {};
+let predictions = [];
+let activeFilter = "all";
+let refreshing = false;
+let leagueReadyState = {}; // code -> 'idle' | 'queued' | 'loading' | 'ready' | 'error'
+let dropdownOpen = false;
+
+// Full prediction results are cached per league+season+gameweek so that
+// switching leagues never re-fetches or re-computes anything that was
+// already loaded. Key: `${league}_${season}_${gw}` -> { predictions, gwToLoad, matchCount }
+let predictionCache = {};
+// Tracks which league+season combos have had their "current gameweek"
+// auto-detected already, so we don't redo that lookup on every visit.
+let autoGwCache = {}; // `${league}_${season}` -> gw number
+
+// Sequential preload queue: on startup we walk every league, top to bottom,
+// loading its current gameweek one at a time so we never fire concurrent
+// request bursts across leagues (which would blow the 10 req/min budget).
+let preloadQueue = [];
+let preloadRunning = false;
+let preloadIndex = -1; // index into LEAGUES currently being preloaded
+
+const LEAGUES = [
+  { code: "PL",  flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Premier League" },
+  { code: "PD",  flag: "🇪🇸", name: "La Liga" },
+  { code: "BL1", flag: "🇩🇪", name: "Bundesliga" },
+  { code: "SA",  flag: "🇮🇹", name: "Serie A" },
+  { code: "FL1", flag: "🇫🇷", name: "Ligue 1" },
+  { code: "ELC", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Championship" },
+  { code: "PPL", flag: "🇵🇹", name: "Primeira Liga" },
+  { code: "DED", flag: "🇳🇱", name: "Eredivisie" },
+  { code: "BSA", flag: "🇧🇷", name: "Série A (Brazil)" },
+  { code: "WC",  flag: "🌍", name: "FIFA World Cup" },
+  { code: "CL",  flag: "🏆", name: "Champions League" },
+  { code: "EC",  flag: "🇪🇺", name: "Euro Championship" }
+];
+const LEAGUE_MAP = Object.fromEntries(LEAGUES.map(l => [l.code, l]));
+
+LEAGUES.forEach(l => leagueReadyState[l.code] = "idle");
+
+// ── Algorithm ──
+// Each recent result is converted into a weighted "performance" value.
+// Weight = recency factor × opponent-difficulty factor.
+// Difficulty factor ranges 0.4 (bottom side) -> 1.0 (top side), so beating
+// a weak team contributes much less than beating / drawing a strong one.
+
+function sosScore(opponentRank, totalTeams) {
+  if (!totalTeams || totalTeams <= 1) return 0.5;
+  return 1 - (opponentRank - 1) / (totalTeams - 1);
+}
+
+function resultFor(homeGoals, awayGoals, isHome) {
+  if (homeGoals === null || homeGoals === undefined || awayGoals === null || awayGoals === undefined) return null;
+  if (homeGoals > awayGoals) return isHome ? 3 : 0;
+  if (homeGoals < awayGoals) return isHome ? 0 : 3;
+  return 1;
+}
+
+// Returns "home" | "draw" | "away" for a finished match, or null if the
+// match hasn't been played yet — used to check predictions against reality.
+function actualOutcome(match) {
+  const hg = match.score?.fullTime?.home;
+  const ag = match.score?.fullTime?.away;
+  if (hg === null || hg === undefined || ag === null || ag === undefined) return null;
+  if (match.status !== "FINISHED") return null;
+  if (hg > ag) return "home";
+  if (hg < ag) return "away";
+  return "draw";
+}
+
+function computeTeamScore(recentMatches, standingInfo, totalTeams, teamIdForLog) {
+  const valid = (recentMatches || []).filter(m => m.homeGoals !== null && m.homeGoals !== undefined);
+
+  if (valid.length === 0) {
+    // No finished matches found for this team in this window — use standing
+    // position alone so different teams don't all collapse to one identical
+    // default score (this was the root cause of the "everything = home win,
+    // confidence flat at ~39%" bug).
+    let posScore = 50;
+    if (standingInfo && totalTeams) {
+      posScore = 30 + ((totalTeams - standingInfo.position) / totalTeams) * 50;
+    }
+    return { score: posScore, attack: 1.2, defense: 1.4, homeRate: 0.4, awayRate: 0.3, sos: 0.5, sampleSize: 0, breakdown: [] };
+  }
+
+  let totalWeight = 0, weightedScore = 0;
+  let atkSum = 0, defSum = 0, wSum = 0;
+  let homeW = 0, homeG = 0, awayW = 0, awayG = 0;
+  let sosTotal = 0, sosCnt = 0;
+  const breakdown = [];
+
+  valid.forEach((m, idx) => {
+    const pts = resultFor(m.homeGoals, m.awayGoals, m.isHome);
+    if (pts === null) return;
+    const oppRank = m.opponentRank || Math.ceil(totalTeams / 2) || 10;
+    const sos = sosScore(oppRank, totalTeams || 20);
+    const recency = 1 - (idx / valid.length) * 0.5;
+    const difficulty = 0.4 + sos * 0.6;
+    const w = recency * difficulty;
+
+    let perf = (pts / 3) * 100;
+    const gf = m.isHome ? m.homeGoals : m.awayGoals;
+    const ga = m.isHome ? m.awayGoals : m.homeGoals;
+    const gd = gf - ga;
+    perf += gd * (5 + sos * 15);
+    if (ga === 0) perf += 8 * sos;
+    if (ga >= 3) perf -= 10;
+
+    weightedScore += perf * w;
+    totalWeight += w;
+    atkSum += gf * w;
+    defSum += ga * w;
+    wSum += w;
+    sosTotal += sos;
+    sosCnt++;
+
+    if (m.isHome) { homeG++; if (pts === 3) homeW++; }
+    else { awayG++; if (pts === 3) awayW++; }
+
+    breakdown.push({ ...m, sos, weight: w, perf, contribution: perf * w });
+  });
+
+  if (totalWeight === 0) {
+    return { score: 50, attack: 1.2, defense: 1.4, homeRate: 0.4, awayRate: 0.3, sos: 0.5, sampleSize: valid.length, breakdown };
+  }
+
+  const rawAdj = weightedScore / totalWeight;
+  const attack = wSum ? atkSum / wSum : 1.2;
+  const defense = wSum ? defSum / wSum : 1.4;
+
+  let posBon = 0;
+  if (standingInfo && totalTeams) {
+    posBon = ((totalTeams - standingInfo.position) / totalTeams) * 18;
+  }
+
+  const clamped = Math.max(-60, Math.min(160, rawAdj));
+  const normalised = ((clamped + 60) / 220) * 82 + posBon;
+  const avgSos = sosCnt ? sosTotal / sosCnt : 0.5;
+
+  return {
+    score: Math.max(2, Math.min(98, normalised)),
+    attack, defense,
+    homeRate: homeG ? homeW / homeG : 0.4,
+    awayRate: awayG ? awayW / awayG : 0.3,
+    sos: avgSos,
+    sampleSize: valid.length,
+    breakdown
+  };
+}
+
+function predictMatch(home, away) {
+  const hs = home.score ?? 50;
+  const as_ = away.score ?? 50;
+
+  // Home advantage: ~8 points
+  const homeAdj = Math.max(1, hs + 8);
+  const awayAdj = Math.max(1, as_);
+
+  const total = homeAdj + awayAdj;
+  const baseHome = homeAdj / total;
+  const baseAway = awayAdj / total;
+
+  const diff = Math.abs(homeAdj - awayAdj);
+  const drawP = Math.max(0.14, Math.min(0.34, 0.32 - diff * 0.006));
+  const scale = 1 - drawP;
+
+  let finalHome = baseHome * scale;
+  let finalAway = baseAway * scale;
+  let finalDraw = drawP;
+
+  // Normalise to exactly 100 to avoid rounding artifacts
+  const sumCheck = finalHome + finalAway + finalDraw;
+  finalHome /= sumCheck; finalAway /= sumCheck; finalDraw /= sumCheck;
+
+  let outcome;
+  if (finalHome >= finalAway && finalHome >= finalDraw) outcome = "home";
+  else if (finalAway >= finalHome && finalAway >= finalDraw) outcome = "away";
+  else outcome = "draw";
+
+  let probHome = Math.round(finalHome * 100);
+  let probDraw = Math.round(finalDraw * 100);
+  let probAway = 100 - probHome - probDraw; // force exact sum to 100
+
+  const confidence = Math.max(probHome, probDraw, probAway);
+
+  return {
+    outcome, confidence,
+    probHome, probDraw, probAway,
+    homeScore: hs, awayScore: as_
+  };
+}
+
+function buildVerdict(pred, homeShort, awayShort) {
+  const { outcome, homeScore: hs, awayScore: as_ } = pred;
+  const diff = Math.abs(hs - as_);
+
+  if (outcome === "home") {
+    if (diff > 20) return `${homeShort} hold a dominant SoS-adjusted edge (${hs.toFixed(0)} vs ${as_.toFixed(0)}). Their recent results against strong opposition give them a clear quality advantage at home.`;
+    if (diff > 10) return `${homeShort} edges this on strength of schedule. More of their recent results came against higher-ranked opposition than ${awayShort} faced.`;
+    return `Narrow home edge for ${homeShort}, helped by home advantage. Both sides look closely matched on raw quality.`;
+  }
+  if (outcome === "away") {
+    if (diff > 20) return `${awayShort} carries a superior opponent-adjusted rating despite playing away. Their recent form against top-ranked sides outweighs ${homeShort}'s home advantage.`;
+    if (diff > 10) return `${awayShort} has faced harder opposition recently, and that schedule-adjusted quality overcomes ${homeShort}'s home advantage.`;
+    return `Slight away lean. ${awayShort}'s schedule-adjusted rating edges ahead of ${homeShort} even after factoring in home advantage.`;
+  }
+  if (diff < 5) return `These sides are virtually level in opponent-weighted quality (${hs.toFixed(0)} vs ${as_.toFixed(0)}). Expect a cagey, balanced match.`;
+  return `The score gap (${hs.toFixed(0)} vs ${as_.toFixed(0)}) isn't large enough to overcome typical draw probability for evenly matched sides.`;
+}
+
+function getForm(recentMatches) {
+  return (recentMatches || []).slice(0, 5).map(m => {
+    const pts = resultFor(m.homeGoals, m.awayGoals, m.isHome);
+    if (pts === null) return null;
+    return pts === 3 ? "W" : pts === 1 ? "D" : "L";
+  }).filter(Boolean);
+}
+
+// ── Data fetching ──
+
+async function fetchStandings(league, season) {
+  const key = `${league}_${season}`;
+  if (allStandings[key]) return allStandings[key];
+  const data = await apiFetch(`/competitions/${league}/standings?season=${season}`);
+  const table = data.standings?.[0]?.table || [];
+  const map = {};
+  table.forEach(t => {
+    map[t.team.id] = {
+      position: t.position, points: t.points, name: t.team.name,
+      played: t.playedGames, won: t.won, draw: t.draw, lost: t.lost,
+      gf: t.goalsFor, ga: t.goalsAgainst
+    };
+  });
+  allStandings[key] = { map, total: table.length };
+  return allStandings[key];
+}
+
+async function fetchCurrentGW(league, season) {
+  try {
+    const data = await apiFetch(`/competitions/${league}?season=${season}`);
+    const total = data.currentSeason?.numberOfMatchdays || 38;
+    const current = data.currentSeason?.currentMatchday;
+    // Set the navigation ceiling.
+    maxGW = total;
+    // If currentMatchday is missing, null, or 1, the season is either not
+    // started or already completed and the API has reset the pointer.
+    // In that case use numberOfMatchdays so a finished season always
+    // opens on its last round rather than round 1.
+    if (!current || current <= 1) return total;
+    return current;
+  } catch { return 38; }
+}
+
+async function fetchMatches(league, gw, season) {
+  const key = `${league}_${season}_${gw}`;
+  if (allMatches[key]) return allMatches[key];
+  const data = await apiFetch(`/competitions/${league}/matches?season=${season}&matchday=${gw}`);
+  allMatches[key] = data.matches || [];
+  return allMatches[key];
+}
+
+function seasonDateRange(season) {
+  // football-data.org seasons run roughly Aug (year) -> Jul (year+1).
+  // Padding slightly to be safe with early/late kickoffs.
+  const y = parseInt(season, 10);
+  return { dateFrom: `${y}-06-01`, dateTo: `${y + 1}-07-15` };
+}
+
+async function fetchTeamRecent(teamId, season, standings, beforeDate) {
+  const key = `${teamId}_${season}_${beforeDate || "latest"}`;
+  if (recentCache[key]) return recentCache[key];
+  try {
+    // IMPORTANT: the /teams/{id}/matches endpoint has NO `season` filter —
+    // it defaults to the team's *current active* season regardless of what
+    // season the user picked elsewhere in the app. We must scope it
+    // ourselves with dateFrom/dateTo, otherwise selecting 2024/25 would
+    // silently pull 2025/26 form data (the root cause of a separate bug).
+    const { dateFrom, dateTo } = seasonDateRange(season);
+    const effectiveDateTo = beforeDate && beforeDate < dateTo ? beforeDate : dateTo;
+    const data = await apiFetch(
+      `/teams/${teamId}/matches?status=FINISHED&dateFrom=${dateFrom}&dateTo=${effectiveDateTo}&limit=20`
+    );
+    // The API returns matches in ascending date order — reverse so most
+    // recent is first, then keep the last 10.
+    const sorted = (data.matches || []).slice().sort((a, b) => new Date(b.utcDate) - new Date(a.utcDate));
+    const matches = sorted.slice(0, 10).map(m => {
+      const isHome = m.homeTeam.id === teamId;
+      const oppId = isHome ? m.awayTeam.id : m.homeTeam.id;
+      const oppRank = standings?.map?.[oppId]?.position || Math.ceil((standings?.total || 20) / 2);
+      return {
+        isHome,
+        homeGoals: m.score?.fullTime?.home ?? null,
+        awayGoals: m.score?.fullTime?.away ?? null,
+        opponentRank: oppRank,
+        opponentName: isHome ? (m.awayTeam.shortName || m.awayTeam.name) : (m.homeTeam.shortName || m.homeTeam.name),
+        date: m.utcDate
+      };
+    });
+    recentCache[key] = matches;
+    return matches;
+  } catch (err) {
+    console.warn(`Could not fetch recent matches for team ${teamId}:`, err.message);
+    recentCache[key] = [];
+    return [];
+  }
+}
+
+// ── Render helpers ──
+
+function fmtDate(utc) {
+  if (!utc) return "";
+  return new Date(utc).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+function fmtTime(utc) {
+  if (!utc) return "";
+  return new Date(utc).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+
+function showOverallProgress(pct, title, sub) {
+  const wrap = document.getElementById("overallProgressWrap");
+  wrap.classList.add("visible");
+  document.getElementById("overallProgressFill").style.width = `${pct}%`;
+  document.getElementById("overallProgressPct").textContent = `${Math.round(pct)}%`;
+  if (title) document.getElementById("overallProgressTitle").textContent = title;
+  if (sub) document.getElementById("overallProgressSub").textContent = sub;
+}
+function hideOverallProgress() {
+  document.getElementById("overallProgressWrap").classList.remove("visible");
+}
+
+function renderLoading(title, sub) {
+  document.getElementById("fixturesGrid").innerHTML = `
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <div class="loading-title">${title}</div>
+      ${sub ? `<div class="loading-sub">${sub}</div>` : ""}
+    </div>`;
+}
+
+function renderError(msg) {
+  document.getElementById("fixturesGrid").innerHTML = `
+    <div class="error-state">
+      <div class="err-title">Could not load data</div>
+      <div class="err-sub">${msg}</div>
+    </div>`;
+}
+
+function setFilter(el, filter) {
+  document.querySelectorAll(".filter-tab").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+  activeFilter = filter;
+  renderFixtures();
+}
+
+function renderFixtures() {
+  const grid = document.getElementById("fixturesGrid");
+  const pool = activeFilter === "all" ? predictions : predictions.filter(p => p.prediction.outcome === activeFilter);
+
+  if (pool.length === 0) {
+    grid.innerHTML = `<div class="empty-state">No fixtures match this filter.</div>`;
+    return;
+  }
+
+  // Sort by descending win % of the predicted outcome so strongest
+  // predictions always appear first.
+  const toShow = [...pool].sort((a, b) => {
+    const aTop = a.prediction.outcome === "home" ? a.prediction.probHome
+               : a.prediction.outcome === "away" ? a.prediction.probAway
+               : a.prediction.probDraw;
+    const bTop = b.prediction.outcome === "home" ? b.prediction.probHome
+               : b.prediction.outcome === "away" ? b.prediction.probAway
+               : b.prediction.probDraw;
+    return bTop - aTop;
+  });
+
+  grid.innerHTML = toShow.map((p, i) => {
+    const { match, homeInfo, awayInfo, prediction, homeForm, awayForm, homeTeamScore, awayTeamScore } = p;
+    const homeShort = match.homeTeam.shortName || match.homeTeam.name;
+    const awayShort = match.awayTeam.shortName || match.awayTeam.name;
+    const homePos = homeInfo?.position ? `#${homeInfo.position}` : "";
+    const awayPos = awayInfo?.position ? `#${awayInfo.position}` : "";
+    const hs = homeTeamScore?.score ?? 0;
+    const as_ = awayTeamScore?.score ?? 0;
+
+    const { outcome, probHome, probDraw, probAway, confidence } = prediction;
+    let predLabel, predCls;
+    if (outcome === "home") { predLabel = "HOME WIN"; predCls = "home"; }
+    else if (outcome === "away") { predLabel = "AWAY WIN"; predCls = "away"; }
+    else { predLabel = "DRAW"; predCls = "draw"; }
+
+    const dots = (form) => (form || []).map(r => `<div class="form-dot ${r}"></div>`).join("");
+
+    const st = match.status;
+    const scoreStr = match.score?.fullTime?.home != null
+      ? `${match.score.fullTime.home} – ${match.score.fullTime.away}`
+      : (st === "TIMED" || st === "SCHEDULED") ? fmtTime(match.utcDate) : st;
+
+    // Star rating: 1 star per 20% of confidence in the predicted outcome,
+    // with >50% guaranteed at least 3 stars as requested. Max 5 stars.
+    const topProb = outcome === "home" ? probHome : outcome === "away" ? probAway : probDraw;
+    let starCount;
+    if (topProb > 80) starCount = 5;
+    else if (topProb > 65) starCount = 4;
+    else if (topProb > 50) starCount = 3;
+    else if (topProb > 38) starCount = 2;
+    else starCount = 1;
+    const stars = Array.from({ length: 5 }, (_, idx) => `<span class="star ${idx < starCount ? "filled" : ""}">★</span>`).join("");
+
+    // If the match has finished, compare prediction to reality — shown only
+    // as a soft border glow (green = correct, red = missed), no text badge.
+    const actual = actualOutcome(match);
+    let resultCardCls = "";
+    if (actual) {
+      resultCardCls = actual === outcome ? "result-correct" : "result-incorrect";
+    }
+
+    return `
+    <div class="fixture-card pred-${outcome} ${resultCardCls}" onclick="openDetail(${i}, '${activeFilter}')">
+      <div class="fixture-top">
+        <div class="star-rating" title="${topProb}% confidence">${stars}</div>
+        <div class="teams-row">
+          <div class="team-block">
+            <div class="team-name">${homeShort}</div>
+            <div class="team-rank">${homePos ? homePos + " · " : ""}${hs.toFixed(0)}</div>
+          </div>
+          <div class="vs-area">
+            <div class="vs-label">vs</div>
+            <div class="score-display">${scoreStr}</div>
+          </div>
+          <div class="team-block away">
+            <div class="team-name">${awayShort}</div>
+            <div class="team-rank">${awayPos ? awayPos + " · " : ""}${as_.toFixed(0)}</div>
+          </div>
+        </div>
+        <div class="pred-right">
+          <div class="pred-outcome-label ${predCls}">${predLabel}</div>
+          <div class="prob-pcts-row">
+            <span class="prob-pct ${outcome==='home'?'active':''}">H ${probHome}%</span>
+            <span class="prob-pct ${outcome==='draw'?'active':''}">D ${probDraw}%</span>
+            <span class="prob-pct ${outcome==='away'?'active':''}">A ${probAway}%</span>
+          </div>
+        </div>
+      </div>
+      <div class="fixture-bottom">
+        <div class="form-row">${dots(homeForm)}</div>
+        <div class="fixture-meta">
+          <div class="fixture-date">${fmtDate(match.utcDate)}</div>
+        </div>
+        <div class="form-row right">${dots(awayForm)}</div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function openDetail(idx, filter) {
+  const pool = filter === "all" ? predictions : predictions.filter(p => p.prediction.outcome === filter);
+  showDetail(pool[idx]);
+}
+
+function showDetail(p) {
+  const { match, homeInfo, awayInfo, prediction, homeForm, awayForm, homeRecent, awayRecent, homeTeamScore, awayTeamScore } = p;
+  const homeShort = match.homeTeam.shortName || match.homeTeam.name;
+  const awayShort = match.awayTeam.shortName || match.awayTeam.name;
+  const standings = allStandings[`${currentLeague}_${currentSeason}`];
+  const total = standings?.total || 20;
+  const hs = homeTeamScore?.score ?? 50;
+  const as_ = awayTeamScore?.score ?? 50;
+
+  let verdictResult, verdictCls;
+  if (prediction.outcome === "home") { verdictResult = `${homeShort} to win`; verdictCls = "home"; }
+  else if (prediction.outcome === "away") { verdictResult = `${awayShort} to win`; verdictCls = "away"; }
+  else { verdictResult = "Draw expected"; verdictCls = "draw"; }
+
+  const fullVerdict = buildVerdict(prediction, homeShort, awayShort);
+
+  // Compare prediction to reality if the match has finished.
+  const actual = actualOutcome(match);
+  let actualResultBox = "";
+  if (actual) {
+    const wasCorrect = actual === prediction.outcome;
+    const actualLabel = actual === "home" ? `${homeShort} won` : actual === "away" ? `${awayShort} won` : "Match drawn";
+    const finalScore = `${match.score.fullTime.home} – ${match.score.fullTime.away}`;
+    actualResultBox = `
+    <div style="margin-top:13px;padding:11px 13px;border-radius:8px;background:${wasCorrect ? "var(--win-dim)" : "var(--loss-dim)"};border:1px solid ${wasCorrect ? "rgba(61,220,151,0.3)" : "rgba(255,107,107,0.3)"};display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div style="font-size:12.5px;font-weight:600;color:${wasCorrect ? "var(--win)" : "var(--loss)"}">
+        ${wasCorrect ? "✓ Prediction was correct" : "✗ Prediction missed"} — final score ${finalScore} (${actualLabel})
+      </div>
+    </div>`;
+  }
+
+  const renderRecent = (matches) => {
+    if (!matches || matches.length === 0) return '<div style="font-size:12.5px;color:var(--text-muted);padding:10px;font-weight:500">No finished match data available for this team in the lookback window.</div>';
+    const finished = matches.filter(m => m.homeGoals !== null);
+    if (finished.length === 0) return '<div style="font-size:12.5px;color:var(--text-muted);padding:10px;font-weight:500">No finished matches found yet this season.</div>';
+    return finished.slice(0, 5).map(m => {
+      const pts = resultFor(m.homeGoals, m.awayGoals, m.isHome);
+      const res = pts === 3 ? "W" : pts === 1 ? "D" : "L";
+      const gf = m.isHome ? m.homeGoals : m.awayGoals;
+      const ga = m.isHome ? m.awayGoals : m.homeGoals;
+      const sos = sosScore(m.opponentRank || Math.ceil(total / 2), total);
+      const sosCls = sos > 0.65 ? "hard" : sos > 0.35 ? "mid" : "easy";
+      const sosText = sos > 0.65 ? "Top side" : sos > 0.35 ? "Mid table" : "Lower table";
+      const contribution = m.contribution !== undefined ? m.contribution.toFixed(1) : "—";
+      return `
+      <div class="recent-match">
+        <div class="rm-result ${res}">${res}</div>
+        <div class="rm-opp">vs ${m.opponentName || "Unknown"} <span class="rm-opp-rank">#${m.opponentRank || "?"}</span></div>
+        <div class="rm-score">${gf}–${ga}</div>
+        <div class="rm-weight ${sosCls}">${sosText}</div>
+        <div class="rm-contrib">${contribution} pts</div>
+      </div>`;
+    }).join("");
+  };
+
+  const compareRow = (label, hv, av, fmt) => {
+    const mx = Math.max(hv, av, 0.01);
+    const hP = Math.round((hv / mx) * 50);
+    const aP = Math.round((av / mx) * 50);
+    return `
+    <div class="compare-bar">
+      <span class="compare-label">${fmt ? fmt(hv) : hv.toFixed(1)}</span>
+      <div class="compare-track">
+        <div class="compare-fill left" style="width:${hP}%"></div>
+        <div class="compare-fill right" style="width:${aP}%"></div>
+      </div>
+      <span class="compare-label right">${fmt ? fmt(av) : av.toFixed(1)}</span>
+    </div>
+    <div class="compare-row-label">${label}</div>`;
+  };
+
+  const homeSampleNote = (homeTeamScore?.sampleSize || 0) < 3
+    ? `<div style="font-size:10.5px;color:var(--draw);margin-top:6px;font-weight:600">⚠ Only ${homeTeamScore?.sampleSize || 0} finished matches found — score uses league position as a fallback.</div>` : "";
+  const awaySampleNote = (awayTeamScore?.sampleSize || 0) < 3
+    ? `<div style="font-size:10.5px;color:var(--draw);margin-top:6px;font-weight:600">⚠ Only ${awayTeamScore?.sampleSize || 0} finished matches found — score uses league position as a fallback.</div>` : "";
+
+  document.getElementById("detailContent").innerHTML = `
+    <div class="detail-eyebrow">Match Analysis · GW${currentGW} · ${currentSeason}/${parseInt(currentSeason) + 1}</div>
+    <div class="match-headline">
+      <div class="headline-team">
+        <div class="headline-name">${homeShort}</div>
+        <div class="headline-pos">${homeInfo ? `#${homeInfo.position} · ${homeInfo.points}pts` : "Home"}</div>
+      </div>
+      <div class="headline-vs">vs</div>
+      <div class="headline-team">
+        <div class="headline-name">${awayShort}</div>
+        <div class="headline-pos">${awayInfo ? `#${awayInfo.position} · ${awayInfo.points}pts` : "Away"}</div>
+      </div>
+    </div>
+
+    <div class="verdict-box">
+      <div class="verdict-top">
+        <div class="verdict-result ${verdictCls}">${verdictResult}</div>
+        <div class="verdict-conf-badge">${prediction.confidence}% confidence</div>
+      </div>
+      <div class="verdict-reason">${fullVerdict}</div>
+      ${actualResultBox}
+      <div class="threeway">
+        <div class="threeway-home" style="flex:${prediction.probHome}"></div>
+        <div class="threeway-draw" style="flex:${prediction.probDraw}"></div>
+        <div class="threeway-away" style="flex:${prediction.probAway}"></div>
+      </div>
+      <div class="threeway-labels">
+        <span class="tw-label home">Home ${prediction.probHome}%</span>
+        <span class="tw-label">Draw ${prediction.probDraw}%</span>
+        <span class="tw-label away">Away ${prediction.probAway}%</span>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-block">
+        <div class="detail-block-title">Opponent-Strength Score</div>
+        <div class="metric-row"><span class="metric-label">${homeShort}</span><span class="metric-val">${hs.toFixed(1)}/100</span></div>
+        <div class="metric-row"><span class="metric-label">${awayShort}</span><span class="metric-val">${as_.toFixed(1)}/100</span></div>
+        <div class="metric-row" style="margin-top:8px">
+          <span class="metric-label">Edge</span>
+          <span class="metric-val" style="color:${hs > as_ ? "var(--win)" : hs < as_ ? "var(--loss)" : "var(--draw)"}">${hs > as_ ? homeShort : hs < as_ ? awayShort : "Level"} ${hs !== as_ ? "+" + Math.abs(hs - as_).toFixed(0) : ""}</span>
+        </div>
+        <div class="metric-row"><span class="metric-label">Avg opponent SoS (home)</span><span class="metric-val">${((homeTeamScore?.sos || 0.5) * 100).toFixed(0)}%</span></div>
+        <div class="metric-row"><span class="metric-label">Avg opponent SoS (away)</span><span class="metric-val">${((awayTeamScore?.sos || 0.5) * 100).toFixed(0)}%</span></div>
+        <div class="metric-row"><span class="metric-label">Matches analysed</span><span class="metric-val">${homeTeamScore?.sampleSize || 0} / ${awayTeamScore?.sampleSize || 0}</span></div>
+        ${homeSampleNote}${awaySampleNote}
+      </div>
+      <div class="detail-block">
+        <div class="detail-block-title">Attack &amp; Defense</div>
+        <div class="metric-row"><span class="metric-label">${homeShort} attack</span><span class="metric-val">${(homeTeamScore?.attack ?? 0).toFixed(2)} gpg</span></div>
+        <div class="metric-row"><span class="metric-label">${homeShort} defense</span><span class="metric-val">${(homeTeamScore?.defense ?? 0).toFixed(2)} ga</span></div>
+        <div class="metric-row"><span class="metric-label">${awayShort} attack</span><span class="metric-val">${(awayTeamScore?.attack ?? 0).toFixed(2)} gpg</span></div>
+        <div class="metric-row"><span class="metric-label">${awayShort} defense</span><span class="metric-val">${(awayTeamScore?.defense ?? 0).toFixed(2)} ga</span></div>
+        <div class="metric-row"><span class="metric-label">${homeShort} home W%</span><span class="metric-val">${Math.round((homeTeamScore?.homeRate ?? 0) * 100)}%</span></div>
+        <div class="metric-row"><span class="metric-label">${awayShort} away W%</span><span class="metric-val">${Math.round((awayTeamScore?.awayRate ?? 0) * 100)}%</span></div>
+      </div>
+    </div>
+
+    <div class="section-subtitle">Comparative ratings</div>
+    ${compareRow("Strength score (SoS-adjusted, 0-100)", hs, as_)}
+    ${compareRow("Goals scored per game", homeTeamScore?.attack ?? 0, awayTeamScore?.attack ?? 0)}
+    ${compareRow("Goals allowed per game", homeTeamScore?.defense ?? 0, awayTeamScore?.defense ?? 0)}
+    ${compareRow("Home / Away win rate", homeTeamScore?.homeRate ?? 0, awayTeamScore?.awayRate ?? 0, v => Math.round(v * 100) + "%")}
+
+    <div class="section-subtitle">${homeShort} — recent results (opponent-weighted, most recent first)</div>
+    <div class="recent-matches">${renderRecent(homeRecent)}</div>
+
+    <div class="section-subtitle">${awayShort} — recent results (opponent-weighted, most recent first)</div>
+    <div class="recent-matches">${renderRecent(awayRecent)}</div>
+
+    <div class="method-box">
+      <div class="method-title">How this prediction was calculated</div>
+      <div class="method-step">
+        <div class="method-step-num">1</div>
+        <div class="method-step-text"><strong>Pull last 10 finished matches</strong> for each team via the API, and look up the league position of every opponent faced in those matches.</div>
+      </div>
+      <div class="method-step">
+        <div class="method-step-num">2</div>
+        <div class="method-step-text"><strong>Score opponent difficulty (SoS)</strong> on a 0–1 scale: facing the league leader scores close to 1.0, facing the bottom side scores close to 0.0.</div>
+      </div>
+      <div class="method-step">
+        <div class="method-step-num">3</div>
+        <div class="method-step-text"><strong>Weight each result</strong> by recency (most recent match weighted highest, oldest weighted lowest) multiplied by a difficulty factor (0.4 for weak opponents up to 1.0 for strong ones) — so a win over a relegation side contributes far less than a win or draw over a top side.</div>
+      </div>
+      <div class="method-step">
+        <div class="method-step-num">4</div>
+        <div class="method-step-text"><strong>Add goal-difference and clean-sheet bonuses</strong>, scaled by opponent strength, and a penalty for conceding 3+ goals — so the magnitude of a result against a strong opponent matters too.</div>
+      </div>
+      <div class="method-step">
+        <div class="method-step-num">5</div>
+        <div class="method-step-text"><strong>Add a league-position bonus</strong> (worth up to 18 points of 100) so current standing still matters, but recent opponent-adjusted form dominates the score.</div>
+      </div>
+      <div class="method-step">
+        <div class="method-step-num">6</div>
+        <div class="method-step-text"><strong>Convert scores to win/draw/away probabilities:</strong> the home team gets a fixed +8 point home-advantage bump, then both scores are converted to a share of the total. Draw probability rises automatically when the two scores are close, and shrinks as the gap widens — this is what allows draws and away wins to actually appear, instead of one outcome always dominating.</div>
+      </div>
+      <div class="formula-box">SoS(opponent) = 1 − (oppRank − 1) / (totalTeams − 1)
+difficulty    = 0.4 + SoS × 0.6
+weight(match) = recencyFactor × difficulty
+perf          = (points/3 × 100) + goalDiff × (5 + SoS×15) + cleanSheetBonus − concededPenalty
+teamScore     = Σ(perf × weight) / Σ(weight)   [+ league position bonus, clamped 2–98]
+
+P(home) ∝ teamScore(home) + 8   |   P(away) ∝ teamScore(away)
+P(draw) = 0.32 − |scoreGap| × 0.006   (clamped 14%–34%)
+P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
+    </div>
+  `;
+
+  document.getElementById("detailOverlay").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeDetail(e) {
+  if (e && e.target !== document.getElementById("detailOverlay")) return;
+  document.getElementById("detailOverlay").classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+// ── League dropdown ──
+
+function renderLeagueDropdown() {
+  const panel = document.getElementById("leagueDropdownPanel");
+  panel.innerHTML = LEAGUES.map(l => {
+    const state = leagueReadyState[l.code];
+    const isActive = l.code === currentLeague;
+    // Greyed out / unclickable while this specific league is loading OR
+    // while the initial sequential preload hasn't reached it yet.
+    const disabled = state === "loading" || state === "queued";
+    const statusCls = state === "ready" ? "ready" : state === "loading" ? "loading" : state === "error" ? "" : "";
+    return `
+    <div class="league-item ${isActive ? "active" : ""} ${disabled ? "disabled" : ""}" onclick="${disabled ? "" : `selectLeague('${l.code}')`}">
+      <span class="league-item-flag">${l.flag}</span>
+      <span class="league-item-name">${l.name}</span>
+      <span class="league-item-status ${statusCls}"></span>
+    </div>`;
+  }).join("");
+}
+
+function toggleLeagueDropdown() {
+  dropdownOpen = !dropdownOpen;
+  document.getElementById("leagueDropdownBtn").classList.toggle("open", dropdownOpen);
+  document.getElementById("leagueDropdownPanel").classList.toggle("open", dropdownOpen);
+  if (dropdownOpen) renderLeagueDropdown();
+}
+
+document.addEventListener("click", e => {
+  if (!e.target.closest(".league-dropdown-wrap") && dropdownOpen) {
+    dropdownOpen = false;
+    document.getElementById("leagueDropdownBtn").classList.remove("open");
+    document.getElementById("leagueDropdownPanel").classList.remove("open");
+  }
+});
+
+async function selectLeague(code) {
+  // Leagues that are still queued/loading are not clickable (the dropdown
+  // already omits the onclick handler for them), but guard here too.
+  if (leagueReadyState[code] === "loading" || leagueReadyState[code] === "queued") return;
+
+  dropdownOpen = false;
+  document.getElementById("leagueDropdownBtn").classList.remove("open");
+  document.getElementById("leagueDropdownPanel").classList.remove("open");
+
+  currentLeague = code;
+  const l = LEAGUE_MAP[code];
+  document.getElementById("activeLeagueFlag").textContent = l.flag;
+  document.getElementById("activeLeagueText").textContent = l.name;
+
+  // Use this league's already-detected "current" gameweek if we have it,
+  // otherwise null triggers auto-detection inside loadLeague.
+  const gwKey = `${code}_${currentSeason}`;
+  const targetGW = autoGwCache[gwKey] || null;
+  await loadLeague(code, targetGW);
+}
+
+// ── Main load flow ──
+// Every successful load is written into predictionCache keyed by
+// league+season+gameweek, so returning to a league (or gameweek) that was
+// already loaded is instant and makes zero network calls.
+
+function cacheKey(league, season, gw) {
+  return `${league}_${season}_${gw}`;
+}
+
+function applyCachedResult(cached, league, gw) {
+  predictions = cached.predictions;
+  currentGW = gw;
+  document.getElementById("pageTitle").textContent = LEAGUE_MAP[league]?.name || league;
+  document.getElementById("gwDisplay").value = gw;
+  document.getElementById("gwAutoBadge").style.display = cached.isAuto ? "inline-block" : "none";
+  document.getElementById("pageSub").textContent =
+    `${cached.predictions.length} fixtures · GW${gw} · ${currentSeason}/${parseInt(currentSeason) + 1} · loaded from cache`;
+  document.getElementById("gwPrev").disabled = gw <= minGW;
+  document.getElementById("gwNext").disabled = gw >= maxGW;
+  document.getElementById("gwPrev").disabled = false;
+  document.getElementById("gwNext").disabled = false;
+  renderFixtures();
+  hideOverallProgress();
+}
+
+async function loadLeague(league, gw, opts) {
+  opts = opts || {};
+  const silent = !!opts.silent; // used during background preload of non-active leagues
+  const name = LEAGUE_MAP[league]?.name || league;
+
+  // ── Serve from cache instantly if we already have this exact gw ──
+  if (gw) {
+    const cached = predictionCache[cacheKey(league, currentSeason, gw)];
+    if (cached) {
+      if (!silent) {
+        document.getElementById("pageTitle").textContent = name;
+        document.getElementById("gwPrev").disabled = true;
+        document.getElementById("gwNext").disabled = true;
+        applyCachedResult(cached, league, gw);
+      }
+      leagueReadyState[league] = "ready";
+      renderLeagueDropdown();
+      return;
+    }
+  }
+
+  leagueReadyState[league] = "loading";
+  renderLeagueDropdown();
+
+  if (!silent) {
+    document.getElementById("pageTitle").textContent = name;
+    document.getElementById("pageSub").textContent = "Fetching data…";
+    document.getElementById("gwDisplay").value = gw || "—";
+    document.getElementById("gwPrev").disabled = true;
+    document.getElementById("gwNext").disabled = true;
+    document.getElementById("gwAutoBadge").style.display = "none";
+    renderLoading("Loading…", "Fetching standings");
+    showOverallProgress(5, `Loading ${name}…`, "Fetching league standings");
+  }
+
+  try {
+    const standings = await fetchStandings(league, currentSeason);
+    if (!silent) showOverallProgress(15, `Loading ${name}…`, "Determining latest gameweek");
+
+    let gwToLoad = gw;
+    let isAuto = false;
+    const gwKey = `${league}_${currentSeason}`;
+    if (!gwToLoad) {
+      if (autoGwCache[gwKey]) {
+        gwToLoad = autoGwCache[gwKey];
+      } else {
+        gwToLoad = await fetchCurrentGW(league, currentSeason);
+        autoGwCache[gwKey] = gwToLoad;
+      }
+      isAuto = true;
+      if (!silent) document.getElementById("gwDisplay").value = gwToLoad;
+    }
+    if (!silent) document.getElementById("gwAutoBadge").style.display = isAuto ? "inline-block" : "none";
+
+    // Re-check cache now that gwToLoad is resolved (covers the "gw was null" path)
+    const existing = predictionCache[cacheKey(league, currentSeason, gwToLoad)];
+    if (existing) {
+      if (!silent && league === currentLeague) applyCachedResult(existing, league, gwToLoad);
+      leagueReadyState[league] = "ready";
+      renderLeagueDropdown();
+      return;
+    }
+
+    if (!silent) showOverallProgress(25, `Gameweek ${gwToLoad}`, "Fetching fixtures…");
+    const matches = await fetchMatches(league, gwToLoad, currentSeason);
+
+    if (!matches.length) {
+      predictionCache[cacheKey(league, currentSeason, gwToLoad)] = { predictions: [], isAuto, matchCount: 0 };
+      if (!silent && league === currentLeague) {
+        document.getElementById("fixturesGrid").innerHTML = `<div class="empty-state">No matches found for Gameweek ${gwToLoad}. Try an adjacent gameweek, or this league/season may not have fixtures yet.</div>`;
+        document.getElementById("pageSub").textContent = `GW${gwToLoad} — no fixtures`;
+        document.getElementById("gwPrev").disabled = false;
+        document.getElementById("gwNext").disabled = false;
+        hideOverallProgress();
+      }
+      leagueReadyState[league] = "ready";
+      renderLeagueDropdown();
+      return;
+    }
+
+    const teamIds = [...new Set(matches.flatMap(m => [m.homeTeam.id, m.awayTeam.id]))];
+    const recentData = {};
+
+    const earliestKickoff = matches.reduce((min, m) => {
+      const d = m.utcDate ? m.utcDate.slice(0, 10) : null;
+      return d && (!min || d < min) ? d : min;
+    }, null);
+
+    // Silent (background) leagues: fetch one team at a time to avoid
+    // flooding the shared rate-limiter queue with hundreds of pending
+    // requests from multiple leagues simultaneously.
+    // Visible (first) league: batch 3 at a time for faster perceived load.
+    if (silent) {
+      for (let i = 0; i < teamIds.length; i++) {
+        recentData[teamIds[i]] = await fetchTeamRecent(teamIds[i], currentSeason, standings, earliestKickoff);
+      }
+    } else {
+      const batchSize = 3;
+      const totalBatches = Math.ceil(teamIds.length / batchSize);
+      for (let i = 0; i < teamIds.length; i += batchSize) {
+        const batch = teamIds.slice(i, i + batchSize);
+        const batchNum = Math.floor(i / batchSize) + 1;
+        const progress = 25 + Math.round((batchNum / totalBatches) * 65);
+        renderLoading(`Analysing ${matches.length} fixtures…`, `Fetching team history — ${batchNum}/${totalBatches}`);
+        showOverallProgress(
+          progress,
+          `Analysing ${matches.length} fixtures`,
+          `Fetching team history — batch ${batchNum} of ${totalBatches}`
+        );
+        await Promise.all(batch.map(async id => {
+          recentData[id] = await fetchTeamRecent(id, currentSeason, standings, earliestKickoff);
+        }));
+      }
+    }
+
+    if (!silent) {
+      showOverallProgress(95, "Computing predictions…", "Applying opponent-strength algorithm");
+      await new Promise(r => setTimeout(r, 150));
+    }
+
+    const computedPredictions = matches.map(match => {
+      const homeId = match.homeTeam.id;
+      const awayId = match.awayTeam.id;
+      const homeInfo = standings.map[homeId];
+      const awayInfo = standings.map[awayId];
+      const homeRecent = recentData[homeId] || [];
+      const awayRecent = recentData[awayId] || [];
+      const homeTeamScore = computeTeamScore(homeRecent, homeInfo, standings.total, homeId);
+      const awayTeamScore = computeTeamScore(awayRecent, awayInfo, standings.total, awayId);
+      const prediction = predictMatch(homeTeamScore, awayTeamScore);
+      const homeRecentWithContrib = homeTeamScore.breakdown.length ? homeTeamScore.breakdown : homeRecent;
+      const awayRecentWithContrib = awayTeamScore.breakdown.length ? awayTeamScore.breakdown : awayRecent;
+      return {
+        match, homeInfo, awayInfo,
+        homeTeamScore, awayTeamScore,
+        prediction,
+        homeForm: getForm(homeRecent),
+        awayForm: getForm(awayRecent),
+        homeRecent: homeRecentWithContrib,
+        awayRecent: awayRecentWithContrib
+      };
+    });
+
+    // ── Persist to cache: this is what makes leagues "stick" once loaded ──
+    predictionCache[cacheKey(league, currentSeason, gwToLoad)] = {
+      predictions: computedPredictions,
+      isAuto,
+      matchCount: computedPredictions.length
+    };
+
+    if (!silent && league === currentLeague) {
+      predictions = computedPredictions;
+      document.getElementById("pageSub").textContent = `${matches.length} fixtures · GW${gwToLoad} · ${currentSeason}/${parseInt(currentSeason) + 1}`;
+      document.getElementById("gwPrev").disabled = gwToLoad <= minGW;
+      document.getElementById("gwNext").disabled = gwToLoad >= maxGW;
+      renderFixtures();
+      showOverallProgress(100, "Done", `${matches.length} fixtures analysed`);
+      setTimeout(hideOverallProgress, 900);
+    }
+
+    leagueReadyState[league] = "ready";
+    renderLeagueDropdown();
+
+  } catch (err) {
+    console.error(err);
+    if (!silent && league === currentLeague) {
+      renderError(`${err.message}. Check the season, or try a different gameweek — this league/season combination may not be available on the free API tier.`);
+      document.getElementById("pageSub").textContent = "Failed to load";
+      document.getElementById("gwPrev").disabled = false;
+      document.getElementById("gwNext").disabled = false;
+      hideOverallProgress();
+    }
+    leagueReadyState[league] = "error";
+    renderLeagueDropdown();
+  }
+}
+
+async function changeGW(delta) {
+  const next = Math.max(minGW, Math.min(maxGW, (currentGW || 1) + delta));
+  if (next === currentGW) return;
+  currentGW = next;
+  document.getElementById("gwDisplay").value = next;
+  document.getElementById("gwAutoBadge").style.display = "none";
+  await loadLeague(currentLeague, next);
+}
+
+async function changeGWInput(val) {
+  const parsed = parseInt(val, 10);
+  if (isNaN(parsed) || parsed < minGW) {
+    document.getElementById("gwDisplay").value = currentGW || 1;
+    return;
+  }
+  const clamped = Math.min(parsed, maxGW);
+  document.getElementById("gwDisplay").value = clamped;
+  if (clamped === currentGW) return;
+  currentGW = clamped;
+  document.getElementById("gwAutoBadge").style.display = "none";
+  await loadLeague(currentLeague, clamped);
+}
+
+async function handleRefresh() {
+  if (refreshing) return;
+  refreshing = true;
+  const btn = document.getElementById("refreshBtn");
+  const icon = document.getElementById("refreshIcon");
+  btn.disabled = true;
+  icon.classList.add("spin");
+
+  // Refresh only clears the cache for the currently viewed league+gw —
+  // every other already-loaded league stays cached and untouched.
+  Object.keys(allMatches).filter(k => k.startsWith(currentLeague)).forEach(k => delete allMatches[k]);
+  Object.keys(recentCache).forEach(k => delete recentCache[k]);
+  delete allStandings[`${currentLeague}_${currentSeason}`];
+  if (currentGW) delete predictionCache[cacheKey(currentLeague, currentSeason, currentGW)];
+
+  await loadLeague(currentLeague, currentGW);
+  btn.disabled = false;
+  icon.classList.remove("spin");
+  refreshing = false;
+}
+
+document.getElementById("seasonSelect").addEventListener("change", async e => {
+  currentSeason = e.target.value;
+  currentGW = null;
+  // A season change invalidates all caches — different season's fixtures,
+  // recent form, and gameweek numbering are entirely different data.
+  Object.keys(recentCache).forEach(k => delete recentCache[k]);
+  Object.keys(predictionCache).forEach(k => delete predictionCache[k]);
+  Object.keys(autoGwCache).forEach(k => delete autoGwCache[k]);
+  Object.keys(leagueReadyState).forEach(k => leagueReadyState[k] = "idle");
+  startSequentialPreload();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeDetail();
+  if (e.key === "ArrowLeft" && !document.getElementById("detailOverlay").classList.contains("open")) changeGW(-1);
+  if (e.key === "ArrowRight" && !document.getElementById("detailOverlay").classList.contains("open")) changeGW(+1);
+});
+
+// ── Sequential preload: walk every league top-to-bottom on startup ──
+// Only one league loads at a time (no concurrent bursts across leagues),
+// and each league is greyed out / unclickable until its own load finishes.
+// The first league (top of the list) is loaded "live" — i.e. it drives the
+// visible page and overall progress bar — all subsequent leagues load
+// silently in the background and simply populate the cache + status dots.
+
+async function startSequentialPreload() {
+  if (preloadRunning) return;
+  preloadRunning = true;
+
+  LEAGUES.forEach(l => { leagueReadyState[l.code] = "queued"; });
+  renderLeagueDropdown();
+
+  for (let i = 0; i < LEAGUES.length; i++) {
+    const league = LEAGUES[i].code;
+    const isFirst = i === 0;
+
+    if (isFirst) {
+      // First league drives the visible UI as it loads.
+      currentLeague = league;
+      const l = LEAGUE_MAP[league];
+      document.getElementById("activeLeagueFlag").textContent = l.flag;
+      document.getElementById("activeLeagueText").textContent = l.name;
+      await loadLeague(league, null, { silent: false });
+    } else {
+      // Remaining leagues load quietly in the background, one at a time,
+      // populating predictionCache so switching to them later is instant.
+      await loadLeague(league, null, { silent: true });
+    }
+  }
+
+  preloadRunning = false;
+}
+
+// ── Init ──
+renderLeagueDropdown();
+startSequentialPreload();
+</script>
+</body>
+</html>

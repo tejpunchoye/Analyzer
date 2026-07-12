@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Prediction Methodology — Fixture AI</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#09090c;--surface:#131318;--surface2:#1a1a22;--surface3:#22222c;
+  --border:#28283a;--border-strong:#3a3a50;
+  --text:#f0f0f8;--text-muted:#a0a0be;--text-dim:#60607a;
+  --accent:#7c74ff;--accent-dim:rgba(124,116,255,0.13);--accent-glow:rgba(124,116,255,0.28);
+  --win:#3ddc97;--draw:#ffc94d;--loss:#ff6b6b;
+  --mono:"JetBrains Mono",monospace;--sans:"Inter",sans-serif;
+  --max:720px;
+}
+html{font-size:14px;background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+body{min-height:100vh;padding:0 16px 60px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.wrap{max-width:var(--max);margin:0 auto}
+
+/* ── Top bar ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 0 28px;border-bottom:1px solid var(--border);margin-bottom:40px;
+  gap:12px;flex-wrap:wrap;
+}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.back-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 13px;border-radius:7px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text-muted);font-size:12.5px;font-weight:600;
+  transition:all .14s;cursor:pointer;text-decoration:none;
+}
+.back-btn:hover{border-color:var(--border-strong);color:var(--text);text-decoration:none}
+.page-eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.page-title{font-size:22px;font-weight:800;color:var(--text);margin-top:3px}
+
+/* ── Sections ── */
+.section{margin-bottom:40px}
+.section-label{
+  font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-dim);margin-bottom:6px;
+}
+.section-heading{
+  font-size:17px;font-weight:800;color:var(--text);margin-bottom:14px;
+  padding-bottom:10px;border-bottom:1px solid var(--border);
+}
+.prose{font-size:13.5px;color:var(--text-muted);line-height:1.75;font-weight:400}
+.prose+.prose{margin-top:10px}
+.prose strong{color:var(--text);font-weight:700}
+
+/* ── Steps ── */
+.steps{display:flex;flex-direction:column;gap:1px;margin-top:4px}
+.step{
+  display:flex;gap:14px;align-items:flex-start;
+  padding:16px 18px;background:var(--surface);
+  border:1px solid var(--border);transition:border-color .14s;
+}
+.step:first-child{border-radius:10px 10px 0 0}
+.step:last-child{border-radius:0 0 10px 10px}
+.step:only-child{border-radius:10px}
+.step:hover{border-color:var(--border-strong)}
+.step-num{
+  width:24px;height:24px;border-radius:6px;flex-shrink:0;
+  background:var(--accent-dim);color:var(--accent);
+  font-size:11px;font-weight:800;font-family:var(--mono);
+  display:flex;align-items:center;justify-content:center;margin-top:1px;
+}
+.step-body{}
+.step-title{font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:5px}
+.step-desc{font-size:12.5px;color:var(--text-muted);line-height:1.65;font-weight:400}
+.step-desc strong{color:var(--text);font-weight:700}
+
+/* ── Formula block ── */
+.formula-wrap{
+  margin-top:4px;border-radius:10px;
+  background:var(--surface);border:1px solid var(--border);overflow:hidden;
+}
+.formula-label{
+  padding:9px 16px;background:var(--surface2);
+  border-bottom:1px solid var(--border);
+  font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--text-dim);
+}
+.formula-code{
+  padding:18px 20px;font-family:var(--mono);font-size:12px;
+  color:var(--text-muted);line-height:1.9;overflow-x:auto;white-space:pre;
+}
+.formula-code .kw{color:var(--accent)}
+.formula-code .val{color:var(--win)}
+.formula-code .cmt{color:var(--text-dim)}
+
+/* ── Key concept cards ── */
+.concept-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.concept-card{
+  padding:14px 16px;border-radius:10px;
+  background:var(--surface);border:1px solid var(--border);
+}
+.concept-icon{font-size:20px;margin-bottom:8px}
+.concept-title{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:5px}
+.concept-desc{font-size:12px;color:var(--text-muted);line-height:1.6;font-weight:400}
+
+/* ── Example box ── */
+.example-box{
+  padding:18px 20px;border-radius:10px;
+  background:var(--surface);border:1px solid var(--border);
+  margin-top:4px;
+}
+.example-title{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px}
+.example-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.example-row:last-child{margin-bottom:0}
+.example-team{font-size:13px;font-weight:700;color:var(--text);width:140px;flex-shrink:0}
+.example-matches{display:flex;flex-direction:column;gap:4px;flex:1}
+.em{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}
+.em-res{
+  width:18px;height:18px;border-radius:4px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;
+}
+.em-res.W{background:rgba(61,220,151,.15);color:var(--win)}
+.em-res.D{background:rgba(255,201,77,.15);color:var(--draw)}
+.em-res.L{background:rgba(255,107,107,.15);color:var(--loss)}
+.em-rank{font-size:10px;color:var(--text-dim);font-family:var(--mono)}
+.em-weight{
+  margin-left:auto;font-size:10px;font-family:var(--mono);
+  padding:1px 6px;border-radius:3px;font-weight:600;
+}
+.em-weight.hard{background:rgba(255,107,107,.13);color:var(--loss)}
+.em-weight.mid{background:rgba(255,201,77,.13);color:var(--draw)}
+.em-weight.easy{background:rgba(61,220,151,.13);color:var(--win)}
+.example-verdict{
+  margin-top:14px;padding:12px 14px;border-radius:8px;
+  background:var(--surface2);border:1px solid var(--border);
+  font-size:12.5px;color:var(--text-muted);line-height:1.6;
+}
+.example-verdict strong{color:var(--text)}
+
+/* ── Limits notice ── */
+.notice{
+  padding:14px 16px;border-radius:10px;margin-top:4px;
+  background:rgba(124,116,255,.07);border:1px solid rgba(124,116,255,.22);
+  font-size:12.5px;color:var(--text-muted);line-height:1.65;
+}
+.notice strong{color:var(--text)}
+
+@media(max-width:600px){
+  .concept-grid{grid-template-columns:1fr}
+  .example-team{width:100px}
+  .topbar{padding:16px 0 20px;margin-bottom:28px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="index.html" class="back-btn">← Predictions</a>
+      <div>
+        <div class="page-eyebrow">Fixture AI</div>
+        <div class="page-title">Prediction Methodology</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overview -->
+  <div class="section">
+    <div class="section-label">Overview</div>
+    <div class="section-heading">Opponent-Strength Engine</div>
+    <p class="prose">Most prediction models look at raw form — how many wins a team has had recently. The problem: a team that has beaten five bottom-half sides in a row looks identical to a team that drew with the league leader and lost narrowly to the top four. Fixture AI fixes this by <strong>weighting every result by the quality of the opponent</strong> faced.</p>
+    <p class="prose" style="margin-top:10px">The core idea is that beating a #1-ranked team is worth far more than beating a #18-ranked team, and drawing against a top-4 side can be more valuable than three wins against relegation candidates. The algorithm identifies and penalises "false form" — a hot streak built entirely on weak opposition.</p>
+  </div>
+
+  <!-- How it works step by step -->
+  <div class="section">
+    <div class="section-label">Algorithm</div>
+    <div class="section-heading">Step-by-step walkthrough</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Fetch recent match history</div>
+          <div class="step-desc">For each team in the fixture, the last <strong>10 finished matches</strong> are pulled from the API. Every match includes the final score and which team was home or away. The opponent's current <strong>league position</strong> is looked up from the standings table to determine their quality.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Score opponent difficulty (SoS)</div>
+          <div class="step-desc">Each opponent is assigned a <strong>Strength of Schedule (SoS)</strong> score between 0 and 1. The league leader scores 1.0, the bottom side scores 0.0, everyone else scales linearly in between. This means a win against #1 carries maximum weight, while a win against #20 carries the minimum.<br><br>Formula: <code style="font-family:var(--mono);background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:11.5px">SoS = 1 − (oppRank − 1) / (totalTeams − 1)</code></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Apply recency and difficulty weighting</div>
+          <div class="step-desc">Each match gets a <strong>compound weight</strong> combining two factors:<br><br>
+          • <strong>Recency factor</strong> — the most recent match is weighted 1.0, the oldest match is weighted 0.5, with linear decay in between. Recent form matters more.<br>
+          • <strong>Difficulty factor</strong> — ranges from 0.4 (weakest opponent) to 1.0 (strongest opponent). A result against a top side counts up to 2.5× more than the same result against a bottom side.<br><br>
+          <code style="font-family:var(--mono);background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:11.5px">difficulty = 0.4 + SoS × 0.6</code><br>
+          <code style="font-family:var(--mono);background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:11.5px">weight = recencyFactor × difficulty</code></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Calculate per-match performance score</div>
+          <div class="step-desc">Each match is converted to a raw performance value before being weighted. The base is the result (win = 100, draw = 33, loss = 0), then adjusted by:<br><br>
+          • <strong>Goal difference bonus</strong> — scaled up by opponent strength. A 3-0 win against a strong side adds much more than a 3-0 win against a weak side.<br>
+          • <strong>Clean sheet bonus</strong> — also scaled by opponent strength (keeping a clean sheet against #1 matters more).<br>
+          • <strong>Heavy concession penalty</strong> — conceding 3 or more goals deducts points regardless of the result.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Aggregate into a team score (0–100)</div>
+          <div class="step-desc">All weighted performance values are averaged into a single <strong>opponent-adjusted team score</strong>. A small <strong>league-position bonus</strong> (up to 18 points) is added on top so current standing is still considered — but recent form always dominates. The final score is clamped between 2 and 98 so no team is rated as completely unbeatable or hopeless.</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Convert scores to win/draw/away probabilities</div>
+          <div class="step-desc">The home team receives a <strong>fixed +8 point home advantage</strong> bonus. Both scores are then converted to shares of the total (so a 60 vs 40 gap becomes 60% home vs 40% away before draw is applied).<br><br>
+          <strong>Draw probability</strong> is calculated separately — it rises when two teams are closely matched and shrinks as the gap widens. This is what allows draws and away wins to appear naturally rather than having home win always dominate:<br><br>
+          <code style="font-family:var(--mono);background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:11.5px">P(draw) = 0.32 − |scoreGap| × 0.006  [clamped 14%–34%]</code><br><br>
+          The remaining probability is split between home and away proportionally, then all three are normalised to sum to exactly 100%.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formula reference -->
+  <div class="section">
+    <div class="section-label">Reference</div>
+    <div class="section-heading">Complete formula</div>
+    <div class="formula-wrap">
+      <div class="formula-label">Scoring model</div>
+      <div class="formula-code"><span class="cmt">── Opponent difficulty ──────────────────────────────────</span>
+<span class="kw">SoS</span>(opponent)  = 1 − (oppRank − 1) / (totalTeams − 1)
+<span class="kw">difficulty</span>    = 0.4 + SoS × 0.6
+<span class="kw">weight</span>(match) = recencyFactor × difficulty
+
+<span class="cmt">── Per-match performance ────────────────────────────────</span>
+<span class="kw">perf</span> = (points/3 × 100)             <span class="cmt">  ← base: W=100, D=33, L=0</span>
+     + goalDiff × (5 + SoS × 15)    <span class="cmt">  ← scaled goal difference</span>
+     + (ga === 0 ? 8 × SoS : 0)     <span class="cmt">  ← clean sheet bonus</span>
+     − (ga >= 3 ? 10 : 0)           <span class="cmt">  ← concession penalty</span>
+
+<span class="cmt">── Team score ───────────────────────────────────────────</span>
+<span class="kw">teamScore</span> = Σ(perf × weight) / Σ(weight)
+          + leaguePositionBonus      <span class="cmt">  ← up to +18, clamped [2, 98]</span>
+
+<span class="cmt">── Probabilities ────────────────────────────────────────</span>
+homeAdj   = teamScore(home) + 8     <span class="cmt">  ← home advantage</span>
+awayAdj   = teamScore(away)
+P(draw)   = 0.32 − |homeAdj − awayAdj| × 0.006  <span class="cmt"> [14%–34%]</span>
+P(home)   ∝ homeAdj × (1 − P(draw))
+P(away)   ∝ awayAdj × (1 − P(draw))
+          → normalised so P(home) + P(draw) + P(away) = 100%</div>
+    </div>
+  </div>
+
+  <!-- Key concepts -->
+  <div class="section">
+    <div class="section-label">Key concepts</div>
+    <div class="section-heading">What this model rewards and penalises</div>
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="concept-icon">🏆</div>
+        <div class="concept-title">Beating strong opponents</div>
+        <div class="concept-desc">A win against the #1-ranked team is weighted at maximum difficulty (1.0). The same result against a bottom-half team is weighted at roughly 0.4 — more than 2× less valuable.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🤝</div>
+        <div class="concept-title">Drawing against top sides</div>
+        <div class="concept-desc">A draw against a league leader can outweigh three wins against relegation candidates once difficulty weighting is applied. The model sees the quality of opposition, not just the result.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">⚠️</div>
+        <div class="concept-title">False form detection</div>
+        <div class="concept-desc">A team with 5 wins in a row against bottom-half sides will score lower than a team with 2 wins and 2 draws against top-half sides. Easy fixtures don't translate to high scores.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">📅</div>
+        <div class="concept-title">Recency decay</div>
+        <div class="concept-desc">Results from 10 matches ago count half as much as last week's result. Teams are assessed on their current trajectory, not what they did at the start of the season.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">⚽</div>
+        <div class="concept-title">Margin of victory matters</div>
+        <div class="concept-desc">A 4-0 win is worth more than a 1-0 win, especially against strong opponents. Goal difference bonuses scale with the difficulty of the opponent faced.</div>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🏠</div>
+        <div class="concept-title">Home advantage</div>
+        <div class="concept-desc">Every home team receives a fixed +8 point bonus before probabilities are calculated. This reflects the well-documented statistical advantage of playing at home.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Example -->
+  <div class="section">
+    <div class="section-label">Example</div>
+    <div class="section-heading">Wolves vs Burnley — why raw form misleads</div>
+    <div class="example-box">
+      <div class="example-title">Recent form (last 5 matches)</div>
+      <div class="example-row">
+        <div class="example-team">Wolves</div>
+        <div class="example-matches">
+          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#4</span><div class="em-weight hard">Top side</div></div>
+          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#6</span><div class="em-weight hard">Top side</div></div>
+          <div class="em"><div class="em-res D">D</div> vs team ranked <span class="em-rank">#1</span><div class="em-weight hard">Top side</div></div>
+          <div class="em"><div class="em-res L">L</div> vs team ranked <span class="em-rank">#2</span><div class="em-weight hard">Top side</div></div>
+          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#9</span> <span style="color:var(--text-dim);font-size:10px">3-0</span><div class="em-weight mid">Mid table</div></div>
+        </div>
+      </div>
+      <div class="example-row">
+        <div class="example-team">Burnley</div>
+        <div class="example-matches">
+          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#18</span><div class="em-weight easy">Lower table</div></div>
+          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#16</span><div class="em-weight easy">Lower table</div></div>
+          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#19</span><div class="em-weight easy">Lower table</div></div>
+          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#8</span><div class="em-weight mid">Mid table</div></div>
+          <div class="em"><div class="em-res D">D</div> vs team ranked <span class="em-rank">#6</span><div class="em-weight hard">Top side</div></div>
+        </div>
+      </div>
+      <div class="example-verdict">
+        Burnley's raw record (4W 1D) looks better than Wolves' (3W 1D 1L). But the model sees something different: <strong>Wolves faced top-half opposition in all five matches</strong>, while <strong>Burnley's four wins were all against bottom-half sides</strong>. After weighting, Wolves score significantly higher and are predicted to win. This is exactly the "false form" the algorithm is designed to catch.
+      </div>
+    </div>
+  </div>
+
+  <!-- Limitations -->
+  <div class="section">
+    <div class="section-label">Limitations</div>
+    <div class="section-heading">What the model doesn't know</div>
+    <div class="notice">
+      <strong>Injuries and suspensions</strong> — the API doesn't provide squad availability data on the free tier, so a team missing its first-choice goalkeeper or striker will still be rated on its historical results.<br><br>
+      <strong>Early season</strong> — when fewer than 5 finished matches are available, the model falls back to league position as the primary signal. Predictions are less reliable in the first few gameweeks.<br><br>
+      <strong>Cup and international matches</strong> — the recent-form lookup pulls all finished matches, which may include domestic cups or continental games against non-league opponents whose ranking is unknown. These are assigned a mid-table difficulty estimate.<br><br>
+      <strong>Manager changes, motivation, and context</strong> — a team with nothing to play for in the final gameweek, or a manager sacked mid-week, will not be reflected in the model. Use predictions as one input alongside your own knowledge.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bet Slip — Fixture AI</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#09090c;--surface:#131318;--surface2:#1a1a22;--surface3:#22222c;
+  --border:#28283a;--border-strong:#3a3a50;
+  --text:#f0f0f8;--text-muted:#a0a0be;--text-dim:#60607a;
+  --accent:#7c74ff;--accent-dim:rgba(124,116,255,0.13);--accent-glow:rgba(124,116,255,0.28);
+  --win:#3ddc97;--draw:#ffc94d;--loss:#ff6b6b;
+  --win-dim:rgba(61,220,151,0.13);--draw-dim:rgba(255,201,77,0.13);--loss-dim:rgba(255,107,107,0.13);
+  --mono:"JetBrains Mono",monospace;--sans:"Inter",sans-serif;
+  --radius:11px;--radius-sm:7px;
+}
+html{font-size:14px;background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
+body{min-height:100vh}
+*{-webkit-tap-highlight-color:transparent}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;border:none;background:none;font-family:var(--sans);color:inherit}
+
+/* ── Shell ── */
+.shell{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+
+/* ── Sidebar ── */
+.sidebar{
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;overflow:hidden;
+}
+.logo{padding:24px 20px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.logo-eye{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.logo-name{font-size:19px;font-weight:800;color:var(--text)}
+.logo-sub{font-size:11.5px;color:var(--text-muted);margin-top:2px;font-weight:500}
+
+.nav{display:flex;flex-direction:column;gap:2px;padding:14px 12px;flex-shrink:0}
+.nav-link{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 10px;border-radius:var(--radius-sm);
+  font-size:12.5px;font-weight:600;color:var(--text-muted);transition:all .14s
+}
+.nav-link:hover{background:var(--surface2);color:var(--text)}
+.nav-link.active{background:var(--accent-dim);color:var(--accent)}
+.nav-icon{font-size:14px;flex-shrink:0}
+
+.sep{height:1px;background:var(--border);margin:8px 18px}
+
+/* Summary panel — scrollable on mobile (drawer), fixed on desktop */
+.summary{
+  margin:0 12px 14px;padding:16px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);flex-shrink:0;
+}
+.summary-title{
+  font-size:9.5px;font-weight:800;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text-dim);margin-bottom:12px
+}
+.summary-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.summary-label{font-size:12px;color:var(--text-muted);font-weight:500}
+.sv{font-size:13px;font-weight:700;font-family:var(--mono);color:var(--text)}
+.sv.won{color:var(--win)}.sv.lost{color:var(--loss)}.sv.pending{color:var(--accent)}
+.sep-thin{height:1px;background:var(--border);margin:10px 0}
+
+/* ── Main ── */
+.main{padding:28px 32px;display:flex;flex-direction:column;gap:22px;min-width:0}
+
+/* ── Header ── */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.page-title{font-size:22px;font-weight:800;color:var(--text)}
+.page-sub{font-size:13px;color:var(--text-muted);margin-top:4px;font-weight:500}
+
+
+/* Filter tabs */
+
+
+/* ── Bet cards ── */
+.bets{display:flex;flex-direction:column;gap:10px}
+
+.bet-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;transition:border-color .2s, box-shadow .2s;
+}
+.bet-card.s-won{
+  border-color:rgba(61,220,151,.35);
+  box-shadow:0 0 0 1px rgba(61,220,151,.12),0 0 20px rgba(61,220,151,.08);
+}
+.bet-card.s-lost{
+  border-color:rgba(255,107,107,.35);
+  box-shadow:0 0 0 1px rgba(255,107,107,.12),0 0 20px rgba(255,107,107,.08);
+}
+.bet-card.s-draw{
+  border-color:rgba(255,201,77,.35);
+  box-shadow:0 0 0 1px rgba(255,201,77,.12),0 0 20px rgba(255,201,77,.08);
+}
+.bet-card.s-pending{border-color:rgba(124,116,255,.25)}
+
+.bet-body{padding:16px 18px}
+
+/* League row */
+.bet-league-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.bet-league-left{display:flex;align-items:center;gap:8px}
+.bet-flag{font-size:16px}
+.bet-league-info{}
+.bet-league-name{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim)}
+.bet-country{font-size:10px;color:var(--text-dim);margin-top:1px}
+
+/* Status pill — clickable to change */
+.status-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:700;
+  cursor:pointer;transition:all .15s;position:relative;border:1px solid transparent;
+  user-select:none;
+}
+.status-pill.pending{background:var(--accent-dim);color:var(--accent);border-color:var(--accent-glow)}
+.status-pill.won{background:var(--win-dim);color:var(--win);border-color:rgba(61,220,151,.3)}
+.status-pill.lost{background:var(--loss-dim);color:var(--loss);border-color:rgba(255,107,107,.3)}
+.status-pill.draw{background:var(--draw-dim);color:var(--draw);border-color:rgba(255,201,77,.3)}
+.status-pill:hover{filter:brightness(1.15)}
+.pill-icon{font-size:12px}
+
+/* Status dropdown */
+.status-dropdown{
+  position:absolute;top:calc(100% + 6px);right:0;
+  background:var(--surface3);border:1px solid var(--border-strong);
+  border-radius:var(--radius-sm);padding:5px;z-index:200;
+  min-width:130px;box-shadow:0 8px 28px rgba(0,0,0,.5);
+  display:none;flex-direction:column;gap:2px;
+}
+.status-dropdown.open{display:flex}
+.sd-opt{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 9px;border-radius:5px;font-size:12px;font-weight:600;
+  cursor:pointer;transition:background .12s;color:var(--text-muted)
+}
+.sd-opt:hover{background:var(--surface2);color:var(--text)}
+.sd-opt.pending:hover{color:var(--accent)}
+.sd-opt.won:hover{color:var(--win)}
+.sd-opt.lost:hover{color:var(--loss)}
+.sd-opt.draw:hover{color:var(--draw)}
+
+/* Teams */
+.bet-teams{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.bt{flex:1;min-width:0}
+.bt.away{text-align:right}
+.bt-name{font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.bet-vs{font-size:11px;color:var(--text-dim);font-family:var(--mono);font-weight:600;padding:0 8px;flex-shrink:0}
+
+/* Meta row */
+.bet-meta{
+  display:flex;align-items:center;gap:0;
+  padding-top:12px;border-top:1px solid var(--border)
+}
+.bm-item{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.bm-item+.bm-item{border-left:1px solid var(--border);padding-left:12px;margin-left:12px}
+.bm-label{font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim)}
+.bm-val{font-size:13px;font-weight:400;font-family:var(--mono);color:var(--text-muted)}
+.bm-val.pick-home{color:var(--win)}.bm-val.pick-draw{color:var(--draw)}.bm-val.pick-away{color:var(--loss)}
+
+/* Editable odds — click to edit inline */
+.odds-edit{
+  display:inline-flex;align-items:center;gap:5px;cursor:pointer;
+  border-bottom:1px dashed var(--border-strong);padding-bottom:1px;
+  transition:border-color .14s;
+}
+.odds-edit:hover{border-color:var(--accent)}
+.odds-edit .edit-hint{font-size:9px;color:var(--text-dim);font-family:var(--sans);font-weight:500}
+.odds-input{
+  width:70px;padding:4px 7px;border-radius:5px;
+  background:var(--surface3);border:1px solid var(--accent);
+  color:var(--text);font-size:13px;font-weight:700;font-family:var(--mono);
+  outline:none;display:none;
+}
+.odds-input.visible{display:block}
+
+/* Delete btn */
+
+
+/* Empty */
+.empty{text-align:center;padding:70px 20px;color:var(--text-muted)}
+.empty-icon{font-size:40px;margin-bottom:16px}
+.empty-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px}
+.empty-sub{font-size:12.5px;color:var(--text-dim);line-height:1.6}
+.empty-cta{
+  display:inline-flex;align-items:center;gap:7px;margin-top:20px;
+  padding:10px 20px;background:var(--accent-dim);border:1px solid var(--accent-glow);
+  color:var(--accent);border-radius:8px;font-size:13px;font-weight:700;
+  cursor:pointer;transition:all .15s;text-decoration:none;font-family:var(--sans)
+}
+.empty-cta:hover{background:rgba(124,116,255,.22)}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--surface2);border:1px solid var(--border-strong);
+  color:var(--text);padding:10px 20px;border-radius:9px;
+  font-size:12.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5);
+  z-index:9999;opacity:0;transition:all .22s;pointer-events:none;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Mobile top nav bar ── */
+.mobile-nav{
+  display:none;position:sticky;top:0;z-index:400;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 14px;
+}
+.mobile-nav-inner{display:flex;height:52px;align-items:center;gap:0}
+.mobile-nav-btn{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  height:100%;font-size:12.5px;font-weight:700;color:var(--text-muted);
+  text-decoration:none;border-bottom:2px solid transparent;
+  transition:all .15s;padding:0 4px;
+}
+.mobile-nav-btn:hover{color:var(--text)}
+.mobile-nav-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.mobile-nav-icon{font-size:15px}
+
+/* ── Summary modal (replaces drawer + floating btn) ── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
+  z-index:800;opacity:0;transition:opacity .2s;align-items:flex-start;justify-content:center;
+  padding-top:80px;
+}
+.modal-overlay.open{display:flex;opacity:1}
+.modal{
+  background:var(--surface);border:1px solid var(--border-strong);
+  border-radius:16px;padding:24px 22px 20px;width:calc(100% - 32px);
+  max-width:380px;box-shadow:0 16px 48px rgba(0,0,0,.7);
+  transform:translateY(-10px);transition:transform .22s;
+}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.modal-title{font-size:14px;font-weight:800;color:var(--text)}
+.modal-close{
+  width:26px;height:26px;border-radius:6px;background:var(--surface2);
+  border:1px solid var(--border);color:var(--text-muted);
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  cursor:pointer;transition:all .14s;
+}
+.modal-close:hover{color:var(--text);border-color:var(--border-strong)}
+
+/* ── Responsive ── */
+@media(max-width:800px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .main{padding:16px 14px}
+  .mobile-nav{display:block}
+  .bet-meta{gap:8px;flex-wrap:wrap}
+  .page-header{flex-direction:column;gap:10px}
+  .page-title{cursor:pointer;display:flex;align-items:center;gap:8px}
+  .page-title::after{content:'ℹ';font-size:14px;color:var(--text-dim);font-weight:400}
+}
+@media(max-width:480px){
+  .bm-val{font-size:11.5px}
+  .bet-meta{gap:6px}
+  .bm-item+.bm-item{padding-left:8px;margin-left:8px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <!-- Sidebar (desktop) -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-eye">Intelligence</div>
+      <div class="logo-name">Fixture AI</div>
+      <div class="logo-sub">Bet Slip</div>
+    </div>
+    <div class="nav">
+      <a href="index.html" class="nav-link"><span class="nav-icon">📊</span>Predictions</a>
+      <div class="sep" style="margin:4px 0"></div>
+      <a href="bets-view.html" class="nav-link active"><span class="nav-icon">🎯</span>Bet Slip</a>
+    </div>
+    <div class="sep"></div>
+    <!-- Summary in sidebar on desktop -->
+    <div class="summary" id="desktopSummary">
+      <div class="summary-title">Summary</div>
+      <div class="summary-row"><span class="summary-label">Total bets</span><span class="sv" id="dTotal">0</span></div>
+      <div class="summary-row"><span class="summary-label">Won</span><span class="sv won" id="dWon">0</span></div>
+      <div class="summary-row"><span class="summary-label">Draw</span><span class="sv" style="color:var(--draw)" id="dDraw">0</span></div>
+      <div class="summary-row"><span class="summary-label">Lost</span><span class="sv lost" id="dLost">0</span></div>
+      <div class="summary-row"><span class="summary-label">Pending</span><span class="sv pending" id="dPending">0</span></div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+    <div class="page-header">
+      <div class="page-title" onclick="openSummaryModal()" title="Tap to see summary">Bet Slip</div>
+    </div>
+    <div class="bets" id="betsList"></div>
+  </main>
+</div>
+
+<!-- Mobile top nav -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <a href="index.html" class="mobile-nav-btn">
+      <span class="mobile-nav-icon">📊</span> Predictions
+    </a>
+    <a href="bets-view.html" class="mobile-nav-btn active">
+      <span class="mobile-nav-icon">🎯</span> Bet Slip
+    </a>
+  </div>
+</nav>
+
+<!-- Summary modal (opens when user taps the "Bet Slip" title on mobile) -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeSummaryModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Summary</div>
+      <button class="modal-close" onclick="closeSummaryModal()">✕</button>
+    </div>
+    <div class="summary-row"><span class="summary-label">Total bets</span><span class="sv" id="mTotal">0</span></div>
+    <div class="summary-row"><span class="summary-label">Won</span><span class="sv won" id="mWon">0</span></div>
+    <div class="summary-row"><span class="summary-label">Draw</span><span class="sv" style="color:var(--draw)" id="mDraw">0</span></div>
+    <div class="summary-row"><span class="summary-label">Lost</span><span class="sv lost" id="mLost">0</span></div>
+    <div class="summary-row"><span class="summary-label">Pending</span><span class="sv pending" id="mPending">0</span></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const SLIP_KEY = 'fixture_ai_bets';
+let allBets = [];
+let openDropdownId = null;
+
+const LEAGUE_META = {
+  PL:{flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',name:'Premier League',country:'England'},
+  PD:{flag:'🇪🇸',name:'La Liga',country:'Spain'},
+  BL1:{flag:'🇩🇪',name:'Bundesliga',country:'Germany'},
+  SA:{flag:'🇮🇹',name:'Serie A',country:'Italy'},
+  FL1:{flag:'🇫🇷',name:'Ligue 1',country:'France'},
+  ELC:{flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',name:'Championship',country:'England'},
+  PPL:{flag:'🇵🇹',name:'Primeira Liga',country:'Portugal'},
+  DED:{flag:'🇳🇱',name:'Eredivisie',country:'Netherlands'},
+  BSA:{flag:'🇧🇷',name:'Série A',country:'Brazil'},
+  WC:{flag:'🌍',name:'World Cup',country:'International'},
+  CL:{flag:'🏆',name:'Champions League',country:'Europe'},
+  EC:{flag:'🇪🇺',name:'Euro Championship',country:'Europe'},
+};
+
+function load(){try{allBets=JSON.parse(localStorage.getItem(SLIP_KEY)||'[]')}catch{allBets=[]}}
+function save(){localStorage.setItem(SLIP_KEY,JSON.stringify(allBets));calcSummary();render()}
+
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2400);
+}
+
+function fmtDate(iso){
+  if(!iso)return'—';
+  return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+function fmtTime(iso){
+  if(!iso)return'—';
+  return new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+
+function calcSummary(){
+  let won=0,draw=0,lost=0,pending=0;
+  allBets.forEach(b=>{
+    if(b.status==='won')won++;
+    else if(b.status==='draw')draw++;
+    else if(b.status==='lost')lost++;
+    else pending++;
+  });
+  const t=allBets.length;
+  ['d','m'].forEach(p=>{
+    document.getElementById(p+'Total').textContent=t;
+    document.getElementById(p+'Won').textContent=won;
+    document.getElementById(p+'Draw').textContent=draw;
+    document.getElementById(p+'Lost').textContent=lost;
+    document.getElementById(p+'Pending').textContent=pending;
+  });
+}
+
+function setStatus(id,status){
+  const idx=allBets.findIndex(b=>b.id===id);
+  if(idx<0)return;
+  allBets[idx].status=status;
+  allBets[idx].updatedAt=new Date().toISOString();
+  save();
+  closeAnyDropdown();
+  toast('Status updated to '+status.toUpperCase());
+}
+
+function deletebet(id){
+  if(!confirm('Remove this bet?'))return;
+  allBets=allBets.filter(b=>b.id!==id);
+  save();
+  toast('Bet removed');
+}
+
+function toggleOddsEdit(id){
+  const display=document.getElementById('odds-display-'+id);
+  const input=document.getElementById('odds-input-'+id);
+  if(input.classList.contains('visible')){
+    // save
+    const v=parseFloat(input.value);
+    if(!isNaN(v)&&v>0){
+      const idx=allBets.findIndex(b=>b.id===id);
+      if(idx>=0){allBets[idx].odds=v.toFixed(2);save();}
+      toast('Odds updated');
+    }
+    display.style.display='';
+    input.classList.remove('visible');
+  } else {
+    const bet=allBets.find(b=>b.id===id);
+    input.value=bet&&bet.odds?bet.odds:'';
+    display.style.display='none';
+    input.classList.add('visible');
+    input.focus();
+  }
+}
+
+function oddsKeydown(e,id){
+  if(e.key==='Enter')toggleOddsEdit(id);
+  if(e.key==='Escape'){
+    document.getElementById('odds-display-'+id).style.display='';
+    document.getElementById('odds-input-'+id).classList.remove('visible');
+  }
+}
+
+function toggleDropdown(id){
+  if(openDropdownId&&openDropdownId!==id){
+    const prev=document.getElementById('dd-'+openDropdownId);
+    if(prev)prev.classList.remove('open');
+  }
+  const dd=document.getElementById('dd-'+id);
+  if(!dd)return;
+  const isOpen=dd.classList.contains('open');
+  dd.classList.toggle('open',!isOpen);
+  openDropdownId=isOpen?null:id;
+}
+
+function closeAnyDropdown(){
+  if(openDropdownId){
+    const dd=document.getElementById('dd-'+openDropdownId);
+    if(dd)dd.classList.remove('open');
+    openDropdownId=null;
+  }
+}
+
+document.addEventListener('click',e=>{
+  if(openDropdownId&&!e.target.closest('.status-pill')&&!e.target.closest('.status-dropdown')){
+    closeAnyDropdown();
+  }
+});
+
+function pickClass(pick){
+  if(!pick)return'';
+  const p=pick.toLowerCase();
+  if(p.includes('home'))return'pick-home';
+  if(p.includes('away'))return'pick-away';
+  return'pick-draw';
+}
+
+function statusIcon(s){
+  return s==='won'?'✓':s==='lost'?'✗':s==='draw'?'½':'⏳';
+}
+
+function render(){
+  const list=document.getElementById('betsList');
+
+
+  if(!allBets.length){
+    list.innerHTML=`
+    <div class="empty">
+      <div class="empty-icon">🎯</div>
+      <div class="empty-title">No bets yet</div>
+      <div class="empty-sub">Go to the Predictions page and tap + on any match<br>to add it to your slip.</div>
+      <a href="index.html" class="empty-cta">📊 Go to Predictions</a>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML=allBets.map(b=>{
+    const m=LEAGUE_META[b.league]||{flag:'🏟',name:b.league||'?',country:'—'};
+    const st=b.status||'pending';
+    const pc=pickClass(b.pick);
+    const oddsVal=b.odds?parseFloat(b.odds).toFixed(2):'—';
+    const hasOdds=!!b.odds;
+    return`
+    <div class="bet-card s-${st}" id="bc-${b.id}">
+      <div class="bet-body">
+        <div class="bet-league-row">
+          <div class="bet-league-left">
+            <span class="bet-flag">${m.flag}</span>
+            <div class="bet-league-info">
+              <div class="bet-league-name">${m.name}</div>
+              <div class="bet-country">${m.country}</div>
+            </div>
+          </div>
+          <div class="status-pill ${st}" onclick="toggleDropdown('${b.id}')" title="Click to change status">
+            <span class="pill-icon">${statusIcon(st)}</span>
+            ${st.toUpperCase()}
+            <div class="status-dropdown" id="dd-${b.id}">
+              <div class="sd-opt pending" onclick="event.stopPropagation();setStatus('${b.id}','pending')">⏳ Pending</div>
+              <div class="sd-opt won"     onclick="event.stopPropagation();setStatus('${b.id}','won')">✓ Won</div>
+              <div class="sd-opt draw"    onclick="event.stopPropagation();setStatus('${b.id}','draw')">½ Draw</div>
+              <div class="sd-opt lost"    onclick="event.stopPropagation();setStatus('${b.id}','lost')">✗ Lost</div>
+              <div style="height:1px;background:var(--border);margin:4px 0"></div>
+              <div class="sd-opt" style="color:var(--loss)" onclick="event.stopPropagation();deletebet('${b.id}')">🗑 Remove</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bet-teams">
+          <div class="bt">
+            <div class="bt-name">${b.homeTeam||'—'}</div>
+          </div>
+          <div class="bet-vs">vs</div>
+          <div class="bt away">
+            <div class="bt-name">${b.awayTeam||'—'}</div>
+          </div>
+        </div>
+
+        <div class="bet-meta">
+          <div class="bm-item">
+            <span class="bm-label">Date</span>
+            <span class="bm-val">${fmtDate(b.matchDate)}</span>
+          </div>
+          <div class="bm-item">
+            <span class="bm-label">Time</span>
+            <span class="bm-val">${fmtTime(b.matchDate)}</span>
+          </div>
+          <div class="bm-item">
+            <span class="bm-label">Pick</span>
+            <span class="bm-val ${pc}">${b.pick||'—'}</span>
+          </div>
+          <div class="bm-item">
+            <span class="bm-label">Odds</span>
+            <span class="bm-val">
+              <span class="odds-edit" id="odds-display-${b.id}" onclick="toggleOddsEdit('${b.id}')" title="Click to edit odds">
+                ${oddsVal}${hasOdds?'':' <span class="edit-hint">+ add</span>'}
+              </span>
+              <input class="odds-input" id="odds-input-${b.id}"
+                type="number" step="0.01" min="1" placeholder="e.g. 2.10"
+                onblur="toggleOddsEdit('${b.id}')"
+                onkeydown="oddsKeydown(event,'${b.id}')"/>
+            </span>
+          </div>
+        </div>
+
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openSummaryModal(){
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeSummaryModal(e){
+  if(e&&e.target!==document.getElementById('modalOverlay'))return;
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+// Cross-tab sync
+window.addEventListener('storage',e=>{
+  if(e.key===SLIP_KEY){load();calcSummary();render();}
+});
+
+load();
+calcSummary();
+render();
+</script>
+</body>
+</html>
