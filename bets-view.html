@@ -338,6 +338,9 @@ button{cursor:pointer;border:none;background:none;font-family:var(--sans);color:
       <a href="bets-view.html" class="drawer-nav-link accent">
         <span class="drawer-nav-icon">🎯</span> Bet Slip
       </a>
+      <a href="methodology.html" class="drawer-nav-link" target="_blank">
+        <span class="drawer-nav-icon">📐</span> Methodology
+      </a>
     </div>
   </div>
 </div>
@@ -463,6 +466,7 @@ function setStatus(id,status){
 
 function deletebet(id){
   if(!confirm('Remove this bet?'))return;
+  closeAnyDropdown();
   allBets=allBets.filter(b=>b.id!==id);
   save();
   toast('Bet removed');
