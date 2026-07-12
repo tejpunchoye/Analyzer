@@ -82,7 +82,8 @@ button{cursor:pointer;border:none;background:none;font-family:var(--sans);color:
 
 .bet-card{
   background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--radius);overflow:hidden;transition:border-color .2s, box-shadow .2s;
+  border-radius:var(--radius);transition:border-color .2s, box-shadow .2s;
+  position:relative;
 }
 .bet-card.s-won{
   border-color:rgba(61,220,151,.35);
@@ -112,22 +113,22 @@ button{cursor:pointer;border:none;background:none;font-family:var(--sans);color:
 .status-pill{
   display:inline-flex;align-items:center;gap:5px;
   padding:4px 11px;border-radius:20px;font-size:11.5px;font-weight:700;
-  cursor:pointer;transition:all .15s;position:relative;border:1px solid transparent;
+  cursor:pointer;transition:all .15s;border:1px solid transparent;
   user-select:none;
 }
 .status-pill.pending{background:var(--accent-dim);color:var(--accent);border-color:var(--accent-glow)}
 .status-pill.won{background:var(--win-dim);color:var(--win);border-color:rgba(61,220,151,.3)}
 .status-pill.lost{background:var(--loss-dim);color:var(--loss);border-color:rgba(255,107,107,.3)}
 .status-pill.draw{background:var(--draw-dim);color:var(--draw);border-color:rgba(255,201,77,.3)}
-.status-pill:hover{filter:brightness(1.15)}
+.status-pill:hover{opacity:.85}
 .pill-icon{font-size:12px}
 
 /* Status dropdown */
 .status-dropdown{
-  position:absolute;top:calc(100% + 6px);right:0;
+  position:fixed;
   background:var(--surface3);border:1px solid var(--border-strong);
-  border-radius:var(--radius-sm);padding:5px;z-index:200;
-  min-width:130px;box-shadow:0 8px 28px rgba(0,0,0,.5);
+  border-radius:var(--radius-sm);padding:5px;z-index:900;
+  min-width:140px;box-shadow:0 8px 28px rgba(0,0,0,.55);
   display:none;flex-direction:column;gap:2px;
 }
 .status-dropdown.open{display:flex}
@@ -204,56 +205,70 @@ button{cursor:pointer;border:none;background:none;font-family:var(--sans);color:
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ── Mobile top nav bar ── */
-.mobile-nav{
-  display:none;position:sticky;top:0;z-index:400;
-  background:var(--surface);border-bottom:1px solid var(--border);
-  padding:0 14px;
+.bet-ghost-trigger{
+  display:none;
+  position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+  z-index:600;padding:7px 18px;border-radius:20px;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  color:rgba(255,255,255,0.3);font-size:11px;font-weight:600;
+  letter-spacing:.06em;cursor:pointer;font-family:var(--sans);
+  transition:all .2s;user-select:none;
 }
-.mobile-nav-inner{display:flex;height:52px;align-items:center;gap:0}
-.mobile-nav-btn{
-  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
-  height:100%;font-size:12.5px;font-weight:700;color:var(--text-muted);
-  text-decoration:none;border-bottom:2px solid transparent;
-  transition:all .15s;padding:0 4px;
+.bet-ghost-trigger:hover,.bet-ghost-trigger:active{
+  background:rgba(255,255,255,0.09);color:rgba(255,255,255,0.55);
+  border-color:rgba(255,255,255,0.15);
 }
-.mobile-nav-btn:hover{color:var(--text)}
-.mobile-nav-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
-.mobile-nav-icon{font-size:15px}
 
-/* ── Summary modal (replaces drawer + floating btn) ── */
-.modal-overlay{
+/* ── Bottom drawer (matches prediction page style) ── */
+.bd-overlay{
   display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
-  z-index:800;opacity:0;transition:opacity .2s;align-items:flex-start;justify-content:center;
-  padding-top:80px;
+  z-index:700;opacity:0;transition:opacity .22s;
 }
-.modal-overlay.open{display:flex;opacity:1}
-.modal{
-  background:var(--surface);border:1px solid var(--border-strong);
-  border-radius:16px;padding:24px 22px 20px;width:calc(100% - 32px);
-  max-width:380px;box-shadow:0 16px 48px rgba(0,0,0,.7);
-  transform:translateY(-10px);transition:transform .22s;
+.bd-overlay.open{display:block;opacity:1}
+.bottom-drawer{
+  position:fixed;bottom:0;left:0;right:0;z-index:800;
+  background:var(--surface);border-top:1px solid var(--border);
+  border-radius:18px 18px 0 0;
+  padding:0 0 env(safe-area-inset-bottom,16px);
+  transform:translateY(100%);
+  transition:transform .3s cubic-bezier(0.32,1.08,0.5,1);
+  max-height:88vh;overflow-y:auto;
 }
-.modal-overlay.open .modal{transform:translateY(0)}
-.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.modal-title{font-size:14px;font-weight:800;color:var(--text)}
-.modal-close{
-  width:26px;height:26px;border-radius:6px;background:var(--surface2);
-  border:1px solid var(--border);color:var(--text-muted);
-  display:flex;align-items:center;justify-content:center;font-size:14px;
-  cursor:pointer;transition:all .14s;
+.bottom-drawer.open{transform:translateY(0)}
+.drawer-handle-wrap{
+  display:flex;justify-content:center;
+  padding:12px 0 8px;cursor:pointer;
 }
-.modal-close:hover{color:var(--text);border-color:var(--border-strong)}
+.drawer-handle{
+  width:36px;height:4px;
+  background:var(--border-strong);border-radius:2px;
+}
+.drawer-inner{padding:4px 20px 28px}
+.drawer-section-label{
+  font-size:9.5px;font-weight:800;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text-dim);
+  margin-bottom:8px;margin-top:18px;
+}
+.drawer-nav-links{display:flex;flex-direction:column;gap:4px}
+.drawer-nav-link{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 12px;border-radius:9px;
+  font-size:13px;font-weight:600;color:var(--text-muted);
+  text-decoration:none;border:1px solid transparent;transition:all .14s;
+}
+.drawer-nav-link:hover{background:var(--surface2);color:var(--text)}
+.drawer-nav-link.accent{background:var(--accent-dim);color:var(--accent);border-color:var(--accent-glow)}
+.drawer-nav-icon{font-size:16px;flex-shrink:0}
 
 /* ── Responsive ── */
 @media(max-width:800px){
   .shell{grid-template-columns:1fr}
   .sidebar{display:none}
   .main{padding:16px 14px}
-  .mobile-nav{display:block}
+  .bet-ghost-trigger{display:block}
   .bet-meta{gap:8px;flex-wrap:wrap}
   .page-header{flex-direction:column;gap:10px}
-  .page-title{cursor:pointer;display:flex;align-items:center;gap:8px}
-  .page-title::after{content:'ℹ';font-size:14px;color:var(--text-dim);font-weight:400}
 }
 @media(max-width:480px){
   .bm-val{font-size:11.5px}
@@ -291,37 +306,50 @@ button{cursor:pointer;border:none;background:none;font-family:var(--sans);color:
   <!-- Main content -->
   <main class="main">
     <div class="page-header">
-      <div class="page-title" onclick="openSummaryModal()" title="Tap to see summary">Bet Slip</div>
+      <div class="page-title">Bet Slip</div>
     </div>
     <div class="bets" id="betsList"></div>
   </main>
 </div>
 
-<!-- Mobile top nav -->
-<nav class="mobile-nav">
-  <div class="mobile-nav-inner">
-    <a href="index.html" class="mobile-nav-btn">
-      <span class="mobile-nav-icon">📊</span> Predictions
-    </a>
-    <a href="bets-view.html" class="mobile-nav-btn active">
-      <span class="mobile-nav-icon">🎯</span> Bet Slip
-    </a>
-  </div>
-</nav>
+<!-- Ghost trigger button (mobile only) -->
+<button class="bet-ghost-trigger" onclick="openDrawer()">···</button>
 
-<!-- Summary modal (opens when user taps the "Bet Slip" title on mobile) -->
-<div class="modal-overlay" id="modalOverlay" onclick="closeSummaryModal(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Summary</div>
-      <button class="modal-close" onclick="closeSummaryModal()">✕</button>
-    </div>
+<!-- Bottom drawer overlay -->
+<div class="bd-overlay" id="bdOverlay" onclick="closeDrawer()"></div>
+
+<!-- Bottom drawer -->
+<div class="bottom-drawer" id="bottomDrawer">
+  <div class="drawer-handle-wrap" onclick="closeDrawer()">
+    <div class="drawer-handle"></div>
+  </div>
+  <div class="drawer-inner">
+    <div class="drawer-section-label">Summary</div>
     <div class="summary-row"><span class="summary-label">Total bets</span><span class="sv" id="mTotal">0</span></div>
     <div class="summary-row"><span class="summary-label">Won</span><span class="sv won" id="mWon">0</span></div>
     <div class="summary-row"><span class="summary-label">Draw</span><span class="sv" style="color:var(--draw)" id="mDraw">0</span></div>
     <div class="summary-row"><span class="summary-label">Lost</span><span class="sv lost" id="mLost">0</span></div>
     <div class="summary-row"><span class="summary-label">Pending</span><span class="sv pending" id="mPending">0</span></div>
+    <div class="drawer-section-label">Navigate</div>
+    <div class="drawer-nav-links">
+      <a href="index.html" class="drawer-nav-link">
+        <span class="drawer-nav-icon">📊</span> Predictions
+      </a>
+      <a href="bets-view.html" class="drawer-nav-link accent">
+        <span class="drawer-nav-icon">🎯</span> Bet Slip
+      </a>
+    </div>
   </div>
+</div>
+
+<!-- Single shared status dropdown — appended to body, positioned by JS -->
+<div id="sharedDropdown" class="status-dropdown">
+  <div class="sd-opt pending" id="sdPending">⏳ Pending</div>
+  <div class="sd-opt won"     id="sdWon">✓ Won</div>
+  <div class="sd-opt draw"    id="sdDraw">½ Draw</div>
+  <div class="sd-opt lost"    id="sdLost">✗ Lost</div>
+  <div style="height:1px;background:var(--border);margin:4px 0"></div>
+  <div class="sd-opt" id="sdRemove" style="color:var(--loss)">🗑 Remove</div>
 </div>
 
 <!-- Toast -->
@@ -331,6 +359,50 @@ button{cursor:pointer;border:none;background:none;font-family:var(--sans);color:
 const SLIP_KEY = 'fixture_ai_bets';
 let allBets = [];
 let openDropdownId = null;
+
+const _dd = () => document.getElementById('sharedDropdown');
+
+function toggleDropdown(id, pill){
+  const dd = _dd();
+  // If same pill clicked again — close
+  if(openDropdownId === id){
+    closeAnyDropdown();
+    return;
+  }
+  // Wire up option handlers for this bet id
+  document.getElementById('sdPending').onclick = e => { e.stopPropagation(); setStatus(id,'pending'); };
+  document.getElementById('sdWon').onclick     = e => { e.stopPropagation(); setStatus(id,'won'); };
+  document.getElementById('sdDraw').onclick    = e => { e.stopPropagation(); setStatus(id,'draw'); };
+  document.getElementById('sdLost').onclick    = e => { e.stopPropagation(); setStatus(id,'lost'); };
+  document.getElementById('sdRemove').onclick  = e => { e.stopPropagation(); deletebet(id); };
+
+  // Position below the pill, flip above if not enough room
+  const r = pill.getBoundingClientRect();
+  const ddW = 150;
+  const ddH = 188;
+  let top  = r.bottom + 6;
+  let left = r.right - ddW;
+  if(left < 8) left = 8;
+  if(left + ddW > window.innerWidth - 8) left = window.innerWidth - ddW - 8;
+  if(top + ddH > window.innerHeight - 12) top = r.top - ddH - 6;
+  dd.style.top  = top  + 'px';
+  dd.style.left = left + 'px';
+  dd.classList.add('open');
+  openDropdownId = id;
+}
+
+function closeAnyDropdown(){
+  _dd().classList.remove('open');
+  openDropdownId = null;
+}
+
+document.addEventListener('click', e => {
+  if(openDropdownId &&
+     !e.target.closest('.status-pill') &&
+     !e.target.closest('.status-dropdown')){
+    closeAnyDropdown();
+  }
+});
 
 const LEAGUE_META = {
   PL:{flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',name:'Premier League',country:'England'},
@@ -374,13 +446,9 @@ function calcSummary(){
     else pending++;
   });
   const t=allBets.length;
-  ['d','m'].forEach(p=>{
-    document.getElementById(p+'Total').textContent=t;
-    document.getElementById(p+'Won').textContent=won;
-    document.getElementById(p+'Draw').textContent=draw;
-    document.getElementById(p+'Lost').textContent=lost;
-    document.getElementById(p+'Pending').textContent=pending;
-  });
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('dTotal',t); set('dWon',won); set('dDraw',draw); set('dLost',lost); set('dPending',pending);
+  set('mTotal',t); set('mWon',won); set('mDraw',draw); set('mLost',lost); set('mPending',pending);
 }
 
 function setStatus(id,status){
@@ -430,31 +498,6 @@ function oddsKeydown(e,id){
   }
 }
 
-function toggleDropdown(id){
-  if(openDropdownId&&openDropdownId!==id){
-    const prev=document.getElementById('dd-'+openDropdownId);
-    if(prev)prev.classList.remove('open');
-  }
-  const dd=document.getElementById('dd-'+id);
-  if(!dd)return;
-  const isOpen=dd.classList.contains('open');
-  dd.classList.toggle('open',!isOpen);
-  openDropdownId=isOpen?null:id;
-}
-
-function closeAnyDropdown(){
-  if(openDropdownId){
-    const dd=document.getElementById('dd-'+openDropdownId);
-    if(dd)dd.classList.remove('open');
-    openDropdownId=null;
-  }
-}
-
-document.addEventListener('click',e=>{
-  if(openDropdownId&&!e.target.closest('.status-pill')&&!e.target.closest('.status-dropdown')){
-    closeAnyDropdown();
-  }
-});
 
 function pickClass(pick){
   if(!pick)return'';
@@ -500,17 +543,9 @@ function render(){
               <div class="bet-country">${m.country}</div>
             </div>
           </div>
-          <div class="status-pill ${st}" onclick="toggleDropdown('${b.id}')" title="Click to change status">
+          <div class="status-pill ${st}" onclick="toggleDropdown('${b.id}',this)" title="Click to change status">
             <span class="pill-icon">${statusIcon(st)}</span>
             ${st.toUpperCase()}
-            <div class="status-dropdown" id="dd-${b.id}">
-              <div class="sd-opt pending" onclick="event.stopPropagation();setStatus('${b.id}','pending')">⏳ Pending</div>
-              <div class="sd-opt won"     onclick="event.stopPropagation();setStatus('${b.id}','won')">✓ Won</div>
-              <div class="sd-opt draw"    onclick="event.stopPropagation();setStatus('${b.id}','draw')">½ Draw</div>
-              <div class="sd-opt lost"    onclick="event.stopPropagation();setStatus('${b.id}','lost')">✗ Lost</div>
-              <div style="height:1px;background:var(--border);margin:4px 0"></div>
-              <div class="sd-opt" style="color:var(--loss)" onclick="event.stopPropagation();deletebet('${b.id}')">🗑 Remove</div>
-            </div>
           </div>
         </div>
 
@@ -556,12 +591,15 @@ function render(){
   }).join('');
 }
 
-function openSummaryModal(){
-  document.getElementById('modalOverlay').classList.add('open');
+function openDrawer(){
+  document.getElementById('bottomDrawer').classList.add('open');
+  document.getElementById('bdOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
 }
-function closeSummaryModal(e){
-  if(e&&e.target!==document.getElementById('modalOverlay'))return;
-  document.getElementById('modalOverlay').classList.remove('open');
+function closeDrawer(){
+  document.getElementById('bottomDrawer').classList.remove('open');
+  document.getElementById('bdOverlay').classList.remove('open');
+  document.body.style.overflow='';
 }
 
 // Cross-tab sync
@@ -569,9 +607,11 @@ window.addEventListener('storage',e=>{
   if(e.key===SLIP_KEY){load();calcSummary();render();}
 });
 
-load();
-calcSummary();
-render();
+document.addEventListener('DOMContentLoaded', () => {
+  load();
+  calcSummary();
+  render();
+});
 </script>
 </body>
 </html>

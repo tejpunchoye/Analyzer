@@ -1114,21 +1114,146 @@
 
       /* ── Responsive ── */
       @media (max-width: 860px) {
-        .shell {
-          grid-template-columns: 1fr;
-        }
-        .sidebar {
-          height: auto;
-          position: static;
-          border-right: none;
-          border-bottom: 1px solid var(--border);
-        }
-        .detail-grid {
-          grid-template-columns: 1fr;
-        }
-        .main {
-          padding: 16px;
-        }
+        .shell { grid-template-columns: 1fr; }
+        .sidebar { display: none; }          /* hidden — replaced by bottom drawer */
+        .detail-grid { grid-template-columns: 1fr; }
+        .main { padding: 16px; }
+      }
+
+      /* ── Bottom-drawer trigger (mobile only) ── */
+      .drawer-trigger {
+        display: none;                         /* shown only on mobile via media query */
+        position: fixed;
+        bottom: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 600;
+        padding: 7px 18px;
+        border-radius: 20px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        color: rgba(255,255,255,0.3);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+        font-family: var(--sans);
+        transition: all 0.2s;
+        user-select: none;
+      }
+      .drawer-trigger:hover,
+      .drawer-trigger:active {
+        background: rgba(255,255,255,0.09);
+        color: rgba(255,255,255,0.55);
+        border-color: rgba(255,255,255,0.15);
+      }
+
+      /* ── Bottom drawer panel ── */
+      .bottom-drawer-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.65);
+        z-index: 700;
+        opacity: 0;
+        transition: opacity 0.22s;
+      }
+      .bottom-drawer-overlay.open { display: block; opacity: 1; }
+
+      .bottom-drawer {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        z-index: 800;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        border-radius: 18px 18px 0 0;
+        padding: 0 0 env(safe-area-inset-bottom, 16px);
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.32,1.08,0.5,1);
+        max-height: 88vh;
+        overflow-y: auto;
+      }
+      .bottom-drawer.open { transform: translateY(0); }
+
+      .drawer-handle-wrap {
+        display: flex;
+        justify-content: center;
+        padding: 12px 0 8px;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .drawer-handle {
+        width: 36px; height: 4px;
+        background: var(--border-strong);
+        border-radius: 2px;
+      }
+
+      .drawer-inner {
+        padding: 4px 20px 28px;
+      }
+
+      .drawer-logo {
+        padding: 8px 0 16px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 16px;
+      }
+      .drawer-logo-name { font-size: 16px; font-weight: 800; color: var(--text); }
+      .drawer-logo-sub  { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+      .drawer-section-label {
+        font-size: 9.5px; font-weight: 800; letter-spacing: 0.12em;
+        text-transform: uppercase; color: var(--text-dim);
+        margin-bottom: 8px; margin-top: 18px;
+      }
+
+      /* League list inside drawer */
+      .drawer-league-list {
+        display: flex; flex-direction: column; gap: 2px;
+      }
+      .drawer-league-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 12px; border-radius: 8px;
+        font-size: 13px; font-weight: 600; color: var(--text-muted);
+        cursor: pointer; transition: all 0.13s; border: 1px solid transparent;
+      }
+      .drawer-league-item:hover { background: var(--surface2); color: var(--text); }
+      .drawer-league-item.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent-glow); }
+      .drawer-league-item.disabled { opacity: 0.35; pointer-events: none; }
+      .drawer-league-flag { font-size: 16px; flex-shrink: 0; }
+      .drawer-league-name { flex: 1; }
+      .drawer-league-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; }
+      .drawer-league-dot.ready   { background: var(--win); box-shadow: 0 0 6px var(--win); }
+      .drawer-league-dot.loading { background: var(--draw); animation: pulseDot 1s infinite; }
+
+      /* Season select inside drawer */
+      .drawer-season-select {
+        width: 100%; padding: 10px 12px; border-radius: 9px;
+        background: var(--surface2); border: 1px solid var(--border);
+        color: var(--text); font-size: 13px; font-weight: 500;
+        appearance: none; outline: none; font-family: var(--sans);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2380809a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 12px center;
+        padding-right: 30px; cursor: pointer;
+      }
+      .drawer-season-select:focus { border-color: var(--accent); }
+
+      /* Nav links inside drawer */
+      .drawer-nav-links { display: flex; flex-direction: column; gap: 4px; }
+      .drawer-nav-link {
+        display: flex; align-items: center; gap: 10px;
+        padding: 11px 12px; border-radius: 9px;
+        font-size: 13px; font-weight: 600; color: var(--text-muted);
+        text-decoration: none; border: 1px solid transparent;
+        transition: all 0.14s;
+      }
+      .drawer-nav-link:hover { background: var(--surface2); color: var(--text); }
+      .drawer-nav-link.accent { background: var(--accent-dim); color: var(--accent); border-color: var(--accent-glow); }
+      .drawer-nav-icon { font-size: 16px; flex-shrink: 0; }
+
+      @media (max-width: 860px) {
+        .drawer-trigger { display: block; }
       }
       @media (max-width: 560px) {
         .pred-right { min-width: 88px; }
@@ -1342,6 +1467,39 @@
           </div>
         </div>
       </main>
+    </div>
+
+    <!-- ── Mobile bottom drawer trigger ── -->
+    <button class="drawer-trigger" onclick="openBottomDrawer()" aria-label="Open settings">···</button>
+
+    <!-- ── Mobile bottom drawer ── -->
+    <div class="bottom-drawer-overlay" id="bdOverlay" onclick="closeBottomDrawer()"></div>
+    <div class="bottom-drawer" id="bottomDrawer">
+      <div class="drawer-handle-wrap" onclick="closeBottomDrawer()">
+        <div class="drawer-handle"></div>
+      </div>
+      <div class="drawer-inner">
+        <div class="drawer-logo">
+          <div class="drawer-logo-name">Fixture AI</div>
+          <div class="drawer-logo-sub">Opponent-Strength Engine</div>
+        </div>
+        <div class="drawer-section-label">League</div>
+        <div class="drawer-league-list" id="drawerLeagueList"></div>
+        <div class="drawer-section-label">Season</div>
+        <select class="drawer-season-select" id="drawerSeasonSelect">
+          <option value="2024">2024/25</option>
+          <option value="2025" selected>2025/26</option>
+        </select>
+        <div class="drawer-section-label">Navigate</div>
+        <div class="drawer-nav-links">
+          <a href="bets-view.html" class="drawer-nav-link accent">
+            <span class="drawer-nav-icon">🎯</span> Bet Slip
+          </a>
+          <a href="methodology.html" class="drawer-nav-link" target="_blank">
+            <span class="drawer-nav-icon">📐</span> Methodology
+          </a>
+        </div>
+      </div>
     </div>
 
     <!-- ── Detail overlay ── -->
@@ -2817,6 +2975,57 @@
         if (btn) { btn.textContent = '✓'; btn.classList.add('added'); btn.title = 'Already in bet slip'; }
         showSlipToast('✓ ' + bet.homeTeam + ' vs ' + bet.awayTeam + ' added to slip');
       }
+
+      // ── Mobile bottom drawer ──────────────────────────────────────────
+      function openBottomDrawer() {
+        renderDrawerLeagueList();
+        // Sync season select
+        document.getElementById('drawerSeasonSelect').value = currentSeason;
+        document.getElementById('bottomDrawer').classList.add('open');
+        document.getElementById('bdOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeBottomDrawer() {
+        document.getElementById('bottomDrawer').classList.remove('open');
+        document.getElementById('bdOverlay').classList.remove('open');
+        document.body.style.overflow = '';
+      }
+
+      function renderDrawerLeagueList() {
+        const el = document.getElementById('drawerLeagueList');
+        if (!el) return;
+        el.innerHTML = LEAGUES.map(l => {
+          const state = leagueReadyState[l.code];
+          const isActive = l.code === currentLeague;
+          const disabled = state === 'loading' || state === 'queued';
+          const dotCls = state === 'ready' ? 'ready' : state === 'loading' ? 'loading' : '';
+          return `
+          <div class="drawer-league-item ${isActive ? 'active' : ''} ${disabled ? 'disabled' : ''}"
+            onclick="${disabled ? '' : `drawerSelectLeague('${l.code}')`}">
+            <span class="drawer-league-flag">${l.flag}</span>
+            <span class="drawer-league-name">${l.name}</span>
+            <span class="drawer-league-dot ${dotCls}"></span>
+          </div>`;
+        }).join('');
+      }
+
+      async function drawerSelectLeague(code) {
+        closeBottomDrawer();
+        await selectLeague(code);
+      }
+
+      // Sync drawer season select with the main one
+      document.addEventListener('DOMContentLoaded', () => {
+        const dss = document.getElementById('drawerSeasonSelect');
+        if (dss) {
+          dss.addEventListener('change', e => {
+            document.getElementById('seasonSelect').value = e.target.value;
+            document.getElementById('seasonSelect').dispatchEvent(new Event('change'));
+            closeBottomDrawer();
+          });
+        }
+      });
 
       // ── Init ──
       renderLeagueDropdown();
