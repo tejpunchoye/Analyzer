@@ -37,7 +37,6 @@
         --loss-dim: rgba(255, 107, 107, 0.14);
         --mono: "JetBrains Mono", monospace;
         --sans: "Inter", sans-serif;
-        --sidebar-width: 250px;
       }
       html {
         font-size: 14px;
@@ -61,10 +60,10 @@
         font-family: var(--sans);
       }
 
-      /* ── Shell & sidebar ── */
+      /* ── Layout ── */
       .shell {
         display: grid;
-        grid-template-columns: var(--sidebar-width) 1fr;
+        grid-template-columns: 250px 1fr;
         min-height: 100vh;
       }
       .sidebar {
@@ -76,8 +75,6 @@
         top: 0;
         height: 100vh;
         overflow-y: auto;
-        transition: transform 0.25s ease;
-        z-index: 10;
       }
       .main {
         padding: 28px 32px;
@@ -87,70 +84,7 @@
         min-width: 0;
       }
 
-      /* ── Hamburger (hidden on desktop) ── */
-      .hamburger {
-        display: none;
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 6px 10px;
-        font-size: 20px;
-        line-height: 1;
-        color: var(--text);
-        margin-bottom: 12px;
-        width: fit-content;
-      }
-      .hamburger:hover {
-        border-color: var(--accent);
-      }
-
-      /* ── Backdrop ── */
-      .drawer-backdrop {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 9;
-      }
-      .drawer-backdrop.open {
-        display: block;
-      }
-
-      /* ── Responsive drawer ── */
-      @media (max-width: 860px) {
-        .shell {
-          grid-template-columns: 1fr;
-        }
-        .sidebar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          height: 100vh;
-          transform: translateX(-100%);
-          border-right: 1px solid var(--border);
-          width: var(--sidebar-width);
-          z-index: 11;
-        }
-        .sidebar.open {
-          transform: translateX(0);
-        }
-        .drawer-backdrop.open {
-          display: block;
-        }
-        .hamburger {
-          display: inline-flex;
-        }
-        .main {
-          padding: 16px;
-        }
-      }
-      @media (max-width: 560px) {
-        .pred-right {
-          min-width: 96px;
-        }
-      }
-
-      /* ── All other styles (unchanged from original) ── */
+      /* ── Sidebar ── */
       .logo {
         padding: 22px 18px 20px;
         border-bottom: 1px solid var(--border);
@@ -186,6 +120,7 @@
         color: var(--text-dim);
       }
 
+      /* League dropdown */
       .league-dropdown-wrap {
         padding: 6px 18px 4px;
         position: relative;
@@ -329,6 +264,7 @@
         background: var(--border);
         margin: 14px 18px;
       }
+
       .season-section {
         padding: 0 18px 14px;
       }
@@ -360,37 +296,12 @@
       .season-select:focus {
         border-color: var(--accent);
       }
-
-      .sidebar-footer {
-        margin-top: auto;
-        padding: 14px 18px;
-        border-top: 1px solid var(--border);
+      .season-note {
+        font-size: 10.5px;
+        color: var(--text-dim);
+        margin-top: 7px;
+        line-height: 1.5;
       }
-      .refresh-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 7px;
-        padding: 10px 14px;
-        border-radius: 9px;
-        background: var(--accent-dim);
-        color: var(--accent);
-        font-size: 12.5px;
-        font-weight: 600;
-        border: 1px solid var(--accent-glow);
-        width: 100%;
-        transition: all 0.18s;
-        cursor: pointer;
-        font-family: var(--sans);
-      }
-      .refresh-btn:hover {
-        background: rgba(124, 116, 255, 0.22);
-      }
-      .refresh-btn:disabled {
-        opacity: 0.4;
-        pointer-events: none;
-      }
-
       .spin {
         animation: spin 0.8s linear infinite;
       }
@@ -400,6 +311,7 @@
         }
       }
 
+      /* ── Header ── */
       .page-header {
         display: flex;
         align-items: flex-start;
@@ -492,6 +404,7 @@
         border-radius: 10px;
       }
 
+      /* ── Overall progress bar ── */
       .overall-progress-wrap {
         background: var(--surface);
         border: 1px solid var(--border);
@@ -550,6 +463,7 @@
         font-weight: 500;
       }
 
+      /* ── Filters ── */
       .section-header {
         display: flex;
         align-items: center;
@@ -588,6 +502,7 @@
         color: var(--text);
       }
 
+      /* ── Fixture cards ── */
       .fixtures-grid {
         display: flex;
         flex-direction: column;
@@ -610,6 +525,9 @@
         box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
       }
 
+      /* Result glow: once a fixture has finished, a very light border glow
+       shows whether the prediction was correct (green) or missed (red) —
+       no text badge, just an ambient cue. */
       .fixture-card.result-correct {
         box-shadow:
           0 0 0 1px rgba(61, 220, 151, 0.4),
@@ -639,6 +557,8 @@
         justify-content: space-between;
         gap: 12px;
       }
+
+      /* Star rating, top-left of each card */
       .star-rating {
         display: flex;
         gap: 1px;
@@ -726,6 +646,7 @@
         color: var(--loss);
       }
 
+      /* Percentages rearranged into a single compact row: H / D / A inline */
       .prob-pcts-row {
         display: flex;
         gap: 7px;
@@ -785,6 +706,7 @@
         font-weight: 600;
       }
 
+      /* ── Detail overlay ── */
       .detail-overlay {
         position: fixed;
         inset: 0;
@@ -1134,69 +1056,9 @@
         font-weight: 500;
       }
 
-      .method-box {
-        margin-top: 18px;
-        padding: 16px 18px;
-        border-radius: 10px;
-        background: var(--surface2);
-        border: 1px solid var(--border);
-      }
-      .method-title {
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.07em;
-        text-transform: uppercase;
-        color: var(--accent);
-        margin-bottom: 10px;
-      }
-      .method-step {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 11px;
-        align-items: flex-start;
-      }
-      .method-step:last-child {
-        margin-bottom: 0;
-      }
-      .method-step-num {
-        width: 19px;
-        height: 19px;
-        border-radius: 5px;
-        background: var(--accent-dim);
-        color: var(--accent);
-        font-size: 10px;
-        font-weight: 800;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        font-family: var(--mono);
-      }
-      .method-step-text {
-        font-size: 12px;
-        color: var(--text-muted);
-        line-height: 1.55;
-        font-weight: 500;
-      }
-      .method-step-text strong {
-        color: var(--text);
-        font-weight: 700;
-      }
+      /* Methodology box */
 
-      .formula-box {
-        margin-top: 12px;
-        padding: 11px 13px;
-        border-radius: 7px;
-        background: var(--bg);
-        border: 1px solid var(--border);
-        font-family: var(--mono);
-        font-size: 11px;
-        color: var(--text-muted);
-        line-height: 1.7;
-        overflow-x: auto;
-        white-space: pre;
-      }
-
+      /* ── Loading / Error ── */
       .loading-state {
         display: flex;
         flex-direction: column;
@@ -1249,19 +1111,119 @@
         color: var(--text-muted);
         font-weight: 500;
       }
+
+      /* ── Responsive ── */
+      @media (max-width: 860px) {
+        .shell {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          height: auto;
+          position: static;
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+        }
+        .detail-grid {
+          grid-template-columns: 1fr;
+        }
+        .main {
+          padding: 16px;
+        }
+      }
+      @media (max-width: 560px) {
+        .pred-right {
+          min-width: 96px;
+        }
+      }
+
+      /* ── Full-screen loading gate ── */
+
+      /* ── Bet slip nav button in sidebar ── */
+      .bet-nav-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 9px;
+        margin: 0 18px 10px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-decoration: none;
+        font-family: var(--sans);
+      }
+      .bet-nav-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-dim);
+      }
+      .bet-nav-icon {
+        font-size: 14px;
+      }
+
+      /* ── Add-to-slip button on fixture cards ── */
+      .slip-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        flex-shrink: 0;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--text-dim);
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+        line-height: 1;
+        font-family: var(--sans);
+      }
+      .slip-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--accent-dim);
+      }
+      .slip-btn.added {
+        border-color: var(--win);
+        color: var(--win);
+        background: var(--win-dim);
+      }
+      /* Toast for bet-slip feedback */
+      .slip-toast {
+        position: fixed;
+        bottom: 22px;
+        left: 50%;
+        transform: translateX(-50%) translateY(10px);
+        background: var(--surface2);
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+        padding: 10px 18px;
+        border-radius: 9px;
+        font-size: 12.5px;
+        font-weight: 600;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        opacity: 0;
+        transition: all 0.22s;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+      .slip-toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
     </style>
   </head>
   <body>
-    <!-- Backdrop for mobile drawer -->
-    <div
-      class="drawer-backdrop"
-      id="drawerBackdrop"
-      onclick="toggleDrawer(false)"
-    ></div>
-
     <div class="shell">
-      <!-- Sidebar -->
-      <aside class="sidebar" id="sidebar">
+      <!-- ── Sidebar ── -->
+      <aside class="sidebar">
         <div class="logo">
           <div class="logo-eyebrow">Intelligence</div>
           <div class="logo-name">Fixture AI</div>
@@ -1293,34 +1255,23 @@
             <option value="2024">2024/25</option>
             <option value="2025" selected>2025/26</option>
           </select>
-          <!-- Season note removed -->
+          <div class="season-note" id="seasonNote">
+            2025/26 is the current season. 2026/27 begins in ~2 months and has
+            no fixtures yet.
+          </div>
         </div>
 
-        <div class="sidebar-footer">
-          <button class="refresh-btn" id="refreshBtn" onclick="handleRefresh()">
-            <svg
-              id="refreshIcon"
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-            >
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-            </svg>
-            Refresh data
-          </button>
-          <!-- Rate hint removed -->
-        </div>
+        <div class="sidebar-sep"></div>
+        <a href="bets-view.html" class="bet-nav-btn">
+          <span class="bet-nav-icon">🎯</span> Bet Slip
+        </a>
+        <a href="methodology.html" class="bet-nav-btn" target="_blank">
+          <span class="bet-nav-icon">📐</span> Methodology
+        </a>
       </aside>
 
-      <!-- Main -->
+      <!-- ── Main ── -->
       <main class="main">
-        <!-- Hamburger button for mobile -->
-        <button class="hamburger" onclick="toggleDrawer(true)">☰</button>
-
         <div class="page-header">
           <div>
             <div class="page-title" id="pageTitle">Premier League</div>
@@ -1359,8 +1310,8 @@
         <div class="overall-progress-wrap" id="overallProgressWrap">
           <div class="overall-progress-top">
             <div class="overall-progress-title">
-              <span class="overall-progress-spinner"></span>
-              <span id="overallProgressTitle">Loading match data…</span>
+              <span class="overall-progress-spinner"></span
+              ><span id="overallProgressTitle">Loading match data…</span>
             </div>
             <div class="overall-progress-pct" id="overallProgressPct">0%</div>
           </div>
@@ -1405,7 +1356,7 @@
       </main>
     </div>
 
-    <!-- Detail overlay -->
+    <!-- ── Detail overlay ── -->
     <div class="detail-overlay" id="detailOverlay" onclick="closeDetail(event)">
       <div class="detail-panel" id="detailPanel">
         <button class="detail-close" onclick="closeDetail()">✕</button>
@@ -1414,31 +1365,11 @@
     </div>
 
     <script>
-      // ── Drawer toggle ──
-      function toggleDrawer(open) {
-        const sidebar = document.getElementById("sidebar");
-        const backdrop = document.getElementById("drawerBackdrop");
-        if (open === undefined) {
-          const isOpen = sidebar.classList.contains("open");
-          sidebar.classList.toggle("open");
-          backdrop.classList.toggle("open");
-        } else {
-          if (open) {
-            sidebar.classList.add("open");
-            backdrop.classList.add("open");
-          } else {
-            sidebar.classList.remove("open");
-            backdrop.classList.remove("open");
-          }
-        }
-      }
-
-      // ── Close drawer when selecting a league ──
-      // We'll modify selectLeague to close it.
-
-      // ── All existing JavaScript (unchanged) ──
+      // Requests go through the local Express /fd proxy (server.js)
+      // which forwards to api.football-data.org and adds the auth header.
       const API_BASE = "/fd";
 
+      // Rate limiter: free tier allows 10 req/min — throttle to 9 to be safe.
       const rateLimiter = {
         queue: [],
         max: 9,
@@ -1477,8 +1408,9 @@
         return res.json();
       }
 
+      // ── State ──
       let currentLeague = "PL";
-      let currentSeason = "2025";
+      let currentSeason = "2025"; // 2025/26 is the current season
       let currentGW = null;
       let maxGW = 38;
       let minGW = 1;
@@ -1488,31 +1420,48 @@
       let predictions = [];
       let activeFilter = "all";
       let refreshing = false;
-      let leagueReadyState = {};
+      let leagueReadyState = {}; // code -> 'idle' | 'queued' | 'loading' | 'ready' | 'error'
       let dropdownOpen = false;
+
+      // Full prediction results are cached per league+season+gameweek so that
+      // switching leagues never re-fetches or re-computes anything that was
+      // already loaded. Key: `${league}_${season}_${gw}` -> { predictions, gwToLoad, matchCount }
       let predictionCache = {};
-      let autoGwCache = {};
+      // Tracks which league+season combos have had their "current gameweek"
+      // auto-detected already, so we don't redo that lookup on every visit.
+      let autoGwCache = {}; // `${league}_${season}` -> gw number
+
+      // Sequential preload queue: on startup we walk every league, top to bottom,
+      // loading its current gameweek one at a time so we never fire concurrent
+      // request bursts across leagues (which would blow the 10 req/min budget).
+      let preloadQueue = [];
       let preloadRunning = false;
+      let preloadIndex = -1; // index into LEAGUES currently being preloaded
 
       const LEAGUES = [
         { code: "PL", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Premier League" },
-        { code: "PD", flag: "🇪🇸", name: "La Liga" },
-        { code: "BL1", flag: "🇩🇪", name: "Bundesliga" },
-        { code: "SA", flag: "🇮🇹", name: "Serie A" },
-        { code: "FL1", flag: "🇫🇷", name: "Ligue 1" },
-        { code: "ELC", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Championship" },
-        { code: "PPL", flag: "🇵🇹", name: "Primeira Liga" },
-        { code: "DED", flag: "🇳🇱", name: "Eredivisie" },
-        { code: "BSA", flag: "🇧🇷", name: "Série A (Brazil)" },
-        { code: "WC", flag: "🌍", name: "FIFA World Cup" },
-        { code: "CL", flag: "🏆", name: "Champions League" },
-        { code: "EC", flag: "🇪🇺", name: "Euro Championship" },
+        // { code: "PD", flag: "🇪🇸", name: "La Liga" },
+        // { code: "BL1", flag: "🇩🇪", name: "Bundesliga" },
+        // { code: "SA", flag: "🇮🇹", name: "Serie A" },
+        // { code: "FL1", flag: "🇫🇷", name: "Ligue 1" },
+        // { code: "ELC", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Championship" },
+        // { code: "PPL", flag: "🇵🇹", name: "Primeira Liga" },
+        // { code: "DED", flag: "🇳🇱", name: "Eredivisie" },
+        // { code: "BSA", flag: "🇧🇷", name: "Série A (Brazil)" },
+        // { code: "WC", flag: "🌍", name: "FIFA World Cup" },
+        // { code: "CL", flag: "🏆", name: "Champions League" },
+        // { code: "EC", flag: "🇪🇺", name: "Euro Championship" },
       ];
       const LEAGUE_MAP = Object.fromEntries(LEAGUES.map((l) => [l.code, l]));
 
       LEAGUES.forEach((l) => (leagueReadyState[l.code] = "idle"));
 
       // ── Algorithm ──
+      // Each recent result is converted into a weighted "performance" value.
+      // Weight = recency factor × opponent-difficulty factor.
+      // Difficulty factor ranges 0.4 (bottom side) -> 1.0 (top side), so beating
+      // a weak team contributes much less than beating / drawing a strong one.
+
       function sosScore(opponentRank, totalTeams) {
         if (!totalTeams || totalTeams <= 1) return 0.5;
         return 1 - (opponentRank - 1) / (totalTeams - 1);
@@ -1531,6 +1480,8 @@
         return 1;
       }
 
+      // Returns "home" | "draw" | "away" for a finished match, or null if the
+      // match hasn't been played yet — used to check predictions against reality.
       function actualOutcome(match) {
         const hg = match.score?.fullTime?.home;
         const ag = match.score?.fullTime?.away;
@@ -1542,11 +1493,21 @@
         return "draw";
       }
 
-      function computeTeamScore(recentMatches, standingInfo, totalTeams) {
+      function computeTeamScore(
+        recentMatches,
+        standingInfo,
+        totalTeams,
+        teamIdForLog,
+      ) {
         const valid = (recentMatches || []).filter(
           (m) => m.homeGoals !== null && m.homeGoals !== undefined,
         );
+
         if (valid.length === 0) {
+          // No finished matches found for this team in this window — use standing
+          // position alone so different teams don't all collapse to one identical
+          // default score (this was the root cause of the "everything = home win,
+          // confidence flat at ~39%" bug).
           let posScore = 50;
           if (standingInfo && totalTeams) {
             posScore =
@@ -1661,6 +1622,7 @@
         const hs = home.score ?? 50;
         const as_ = away.score ?? 50;
 
+        // Home advantage: ~8 points
         const homeAdj = Math.max(1, hs + 8);
         const awayAdj = Math.max(1, as_);
 
@@ -1676,6 +1638,7 @@
         let finalAway = baseAway * scale;
         let finalDraw = drawP;
 
+        // Normalise to exactly 100 to avoid rounding artifacts
         const sumCheck = finalHome + finalAway + finalDraw;
         finalHome /= sumCheck;
         finalAway /= sumCheck;
@@ -1689,7 +1652,7 @@
 
         let probHome = Math.round(finalHome * 100);
         let probDraw = Math.round(finalDraw * 100);
-        let probAway = 100 - probHome - probDraw;
+        let probAway = 100 - probHome - probDraw; // force exact sum to 100
 
         const confidence = Math.max(probHome, probDraw, probAway);
 
@@ -1707,6 +1670,7 @@
       function buildVerdict(pred, homeShort, awayShort) {
         const { outcome, homeScore: hs, awayScore: as_ } = pred;
         const diff = Math.abs(hs - as_);
+
         if (outcome === "home") {
           if (diff > 20)
             return `${homeShort} hold a dominant SoS-adjusted edge (${hs.toFixed(0)} vs ${as_.toFixed(0)}). Their recent results against strong opposition give them a clear quality advantage at home.`;
@@ -1738,6 +1702,7 @@
       }
 
       // ── Data fetching ──
+
       async function fetchStandings(league, season) {
         const key = `${league}_${season}`;
         if (allStandings[key]) return allStandings[key];
@@ -1763,29 +1728,23 @@
         return allStandings[key];
       }
 
-      // FIXED: fetchCurrentGW now handles start/end dates properly
       async function fetchCurrentGW(league, season) {
         try {
           const data = await apiFetch(
             `/competitions/${league}?season=${season}`,
           );
-          const currentSeason = data.currentSeason;
-          if (!currentSeason) return 1;
-
-          const total = currentSeason.numberOfMatchdays || 38;
-          const current = currentSeason.currentMatchday;
-
-          if (current && current > 0) return current;
-
-          const now = new Date();
-          const start = new Date(currentSeason.startDate);
-          const end = new Date(currentSeason.endDate);
-
-          if (now > end) return total;
-          else if (now < start) return 1;
-          else return 1;
+          const total = data.currentSeason?.numberOfMatchdays || 38;
+          const current = data.currentSeason?.currentMatchday;
+          // Set the navigation ceiling.
+          maxGW = total;
+          // If currentMatchday is missing, null, or 1, the season is either not
+          // started or already completed and the API has reset the pointer.
+          // In that case use numberOfMatchdays so a finished season always
+          // opens on its last round rather than round 1.
+          if (!current || current <= 1) return total;
+          return current;
         } catch {
-          return 1;
+          return 38;
         }
       }
 
@@ -1800,6 +1759,8 @@
       }
 
       function seasonDateRange(season) {
+        // football-data.org seasons run roughly Aug (year) -> Jul (year+1).
+        // Padding slightly to be safe with early/late kickoffs.
         const y = parseInt(season, 10);
         return { dateFrom: `${y}-06-01`, dateTo: `${y + 1}-07-15` };
       }
@@ -1808,12 +1769,19 @@
         const key = `${teamId}_${season}_${beforeDate || "latest"}`;
         if (recentCache[key]) return recentCache[key];
         try {
+          // IMPORTANT: the /teams/{id}/matches endpoint has NO `season` filter —
+          // it defaults to the team's *current active* season regardless of what
+          // season the user picked elsewhere in the app. We must scope it
+          // ourselves with dateFrom/dateTo, otherwise selecting 2024/25 would
+          // silently pull 2025/26 form data (the root cause of a separate bug).
           const { dateFrom, dateTo } = seasonDateRange(season);
           const effectiveDateTo =
             beforeDate && beforeDate < dateTo ? beforeDate : dateTo;
           const data = await apiFetch(
             `/teams/${teamId}/matches?status=FINISHED&dateFrom=${dateFrom}&dateTo=${effectiveDateTo}&limit=20`,
           );
+          // The API returns matches in ascending date order — reverse so most
+          // recent is first, then keep the last 10.
           const sorted = (data.matches || [])
             .slice()
             .sort((a, b) => new Date(b.utcDate) - new Date(a.utcDate));
@@ -1847,6 +1815,7 @@
       }
 
       // ── Render helpers ──
+
       function fmtDate(utc) {
         if (!utc) return "";
         return new Date(utc).toLocaleDateString("en-GB", {
@@ -1882,19 +1851,19 @@
 
       function renderLoading(title, sub) {
         document.getElementById("fixturesGrid").innerHTML = `
-          <div class="loading-state">
-            <div class="loading-spinner"></div>
-            <div class="loading-title">${title}</div>
-            ${sub ? `<div class="loading-sub">${sub}</div>` : ""}
-          </div>`;
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <div class="loading-title">${title}</div>
+      ${sub ? `<div class="loading-sub">${sub}</div>` : ""}
+    </div>`;
       }
 
       function renderError(msg) {
         document.getElementById("fixturesGrid").innerHTML = `
-          <div class="error-state">
-            <div class="err-title">Could not load data</div>
-            <div class="err-sub">${msg}</div>
-          </div>`;
+    <div class="error-state">
+      <div class="err-title">Could not load data</div>
+      <div class="err-sub">${msg}</div>
+    </div>`;
       }
 
       function setFilter(el, filter) {
@@ -1906,17 +1875,24 @@
         renderFixtures();
       }
 
+      // Holds the currently displayed sorted order so openDetail always
+      // opens the card the user actually clicked, not a positional mismatch.
+      let displayedPredictions = [];
+
       function renderFixtures() {
         const grid = document.getElementById("fixturesGrid");
         const pool =
           activeFilter === "all"
             ? predictions
             : predictions.filter((p) => p.prediction.outcome === activeFilter);
+
         if (pool.length === 0) {
           grid.innerHTML = `<div class="empty-state">No fixtures match this filter.</div>`;
           return;
         }
 
+        // Sort by descending win % of the predicted outcome so strongest
+        // predictions always appear first.
         const toShow = [...pool].sort((a, b) => {
           const aTop =
             a.prediction.outcome === "home"
@@ -1932,6 +1908,9 @@
                 : b.prediction.probDraw;
           return bTop - aTop;
         });
+
+        // Persist the sorted order — openDetail indexes into this
+        displayedPredictions = toShow;
 
         grid.innerHTML = toShow
           .map((p, i) => {
@@ -1979,6 +1958,8 @@
                   ? fmtTime(match.utcDate)
                   : st;
 
+            // Star rating: 1 star per 20% of confidence in the predicted outcome,
+            // with >50% guaranteed at least 3 stars as requested. Max 5 stars.
             const topProb =
               outcome === "home"
                 ? probHome
@@ -1997,58 +1978,62 @@
                 `<span class="star ${idx < starCount ? "filled" : ""}">★</span>`,
             ).join("");
 
+            // If the match has finished, compare prediction to reality — shown only
+            // as a soft border glow (green = correct, red = missed), no text badge.
             const actual = actualOutcome(match);
             let resultCardCls = "";
-            if (actual)
+            if (actual) {
               resultCardCls =
                 actual === outcome ? "result-correct" : "result-incorrect";
+            }
 
+            const slipId = `${match.homeTeam.id}_${match.awayTeam.id}_${currentGW}_${currentLeague}`;
+            const alreadyAdded = isInSlip(slipId);
             return `
-            <div class="fixture-card pred-${outcome} ${resultCardCls}" onclick="openDetail(${i}, '${activeFilter}')">
-              <div class="fixture-top">
-                <div class="star-rating" title="${topProb}% confidence">${stars}</div>
-                <div class="teams-row">
-                  <div class="team-block">
-                    <div class="team-name">${homeShort}</div>
-                    <div class="team-rank">${homePos ? homePos + " · " : ""}${hs.toFixed(0)}</div>
-                  </div>
-                  <div class="vs-area">
-                    <div class="vs-label">vs</div>
-                    <div class="score-display">${scoreStr}</div>
-                  </div>
-                  <div class="team-block away">
-                    <div class="team-name">${awayShort}</div>
-                    <div class="team-rank">${awayPos ? awayPos + " · " : ""}${as_.toFixed(0)}</div>
-                  </div>
-                </div>
-                <div class="pred-right">
-                  <div class="pred-outcome-label ${predCls}">${predLabel}</div>
-                  <div class="prob-pcts-row">
-                    <span class="prob-pct ${outcome === "home" ? "active" : ""}">H ${probHome}%</span>
-                    <span class="prob-pct ${outcome === "draw" ? "active" : ""}">D ${probDraw}%</span>
-                    <span class="prob-pct ${outcome === "away" ? "active" : ""}">A ${probAway}%</span>
-                  </div>
-                </div>
-              </div>
-              <div class="fixture-bottom">
-                <div class="form-row">${dots(homeForm)}</div>
-                <div class="fixture-meta">
-                  <div class="fixture-date">${fmtDate(match.utcDate)}</div>
-                </div>
-                <div class="form-row right">${dots(awayForm)}</div>
-              </div>
-            </div>
-          `;
+    <div class="fixture-card pred-${outcome} ${resultCardCls}" onclick="openDetail(${i})">
+      <div class="fixture-top">
+        <div class="star-rating" title="${topProb}% confidence">${stars}</div>
+        <div class="teams-row">
+          <div class="team-block">
+            <div class="team-name">${homeShort}</div>
+            <div class="team-rank">${homePos ? homePos + " · " : ""}${hs.toFixed(0)}</div>
+          </div>
+          <div class="vs-area">
+            <div class="vs-label">vs</div>
+            <div class="score-display">${scoreStr}</div>
+          </div>
+          <div class="team-block away">
+            <div class="team-name">${awayShort}</div>
+            <div class="team-rank">${awayPos ? awayPos + " · " : ""}${as_.toFixed(0)}</div>
+          </div>
+        </div>
+        <div class="pred-right">
+          <div class="pred-outcome-label ${predCls}">${predLabel}</div>
+          <div class="prob-pcts-row">
+            <span class="prob-pct ${outcome === "home" ? "active" : ""}">H ${probHome}%</span>
+            <span class="prob-pct ${outcome === "draw" ? "active" : ""}">D ${probDraw}%</span>
+            <span class="prob-pct ${outcome === "away" ? "active" : ""}">A ${probAway}%</span>
+          </div>
+        </div>
+        <button class="slip-btn ${alreadyAdded ? "added" : ""}"
+          title="${alreadyAdded ? "Already in bet slip" : "Add to bet slip"}"
+          onclick="event.stopPropagation(); addToSlip(${i}, this)"
+        >${alreadyAdded ? "✓" : "+"}</button>
+      </div>
+      <div class="fixture-bottom">
+        <div class="form-row">${dots(homeForm)}</div>
+        <div class="fixture-meta">
+          <div class="fixture-date">${fmtDate(match.utcDate)}</div>
+        </div>
+        <div class="form-row right">${dots(awayForm)}</div>
+      </div>
+    </div>`;
           })
           .join("");
       }
 
-      function openDetail(idx, filter) {
-        const pool =
-          filter === "all"
-            ? predictions
-            : predictions.filter((p) => p.prediction.outcome === filter);
-        showDetail(pool[idx]);
+      function openDetail(idx) {
+        showDetail(displayedPredictions[idx]);
       }
 
       function showDetail(p) {
@@ -2085,6 +2070,7 @@
 
         const fullVerdict = buildVerdict(prediction, homeShort, awayShort);
 
+        // Compare prediction to reality if the match has finished.
         const actual = actualOutcome(match);
         let actualResultBox = "";
         if (actual) {
@@ -2097,12 +2083,11 @@
                 : "Match drawn";
           const finalScore = `${match.score.fullTime.home} – ${match.score.fullTime.away}`;
           actualResultBox = `
-            <div style="margin-top:13px;padding:11px 13px;border-radius:8px;background:${wasCorrect ? "var(--win-dim)" : "var(--loss-dim)"};border:1px solid ${wasCorrect ? "rgba(61,220,151,0.3)" : "rgba(255,107,107,0.3)"};display:flex;align-items:center;justify-content:space-between;gap:10px">
-              <div style="font-size:12.5px;font-weight:600;color:${wasCorrect ? "var(--win)" : "var(--loss)"}">
-                ${wasCorrect ? "✓ Prediction was correct" : "✗ Prediction missed"} — final score ${finalScore} (${actualLabel})
-              </div>
-            </div>
-          `;
+    <div style="margin-top:13px;padding:11px 13px;border-radius:8px;background:${wasCorrect ? "var(--win-dim)" : "var(--loss-dim)"};border:1px solid ${wasCorrect ? "rgba(61,220,151,0.3)" : "rgba(255,107,107,0.3)"};display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div style="font-size:12.5px;font-weight:600;color:${wasCorrect ? "var(--win)" : "var(--loss)"}">
+        ${wasCorrect ? "✓ Prediction was correct" : "✗ Prediction missed"} — final score ${finalScore} (${actualLabel})
+      </div>
+    </div>`;
         }
 
         const renderRecent = (matches) => {
@@ -2132,14 +2117,13 @@
               const contribution =
                 m.contribution !== undefined ? m.contribution.toFixed(1) : "—";
               return `
-              <div class="recent-match">
-                <div class="rm-result ${res}">${res}</div>
-                <div class="rm-opp">vs ${m.opponentName || "Unknown"} <span class="rm-opp-rank">#${m.opponentRank || "?"}</span></div>
-                <div class="rm-score">${gf}–${ga}</div>
-                <div class="rm-weight ${sosCls}">${sosText}</div>
-                <div class="rm-contrib">${contribution} pts</div>
-              </div>
-            `;
+      <div class="recent-match">
+        <div class="rm-result ${res}">${res}</div>
+        <div class="rm-opp">vs ${m.opponentName || "Unknown"} <span class="rm-opp-rank">#${m.opponentRank || "?"}</span></div>
+        <div class="rm-score">${gf}–${ga}</div>
+        <div class="rm-weight ${sosCls}">${sosText}</div>
+        <div class="rm-contrib">${contribution} pts</div>
+      </div>`;
             })
             .join("");
         };
@@ -2149,16 +2133,15 @@
           const hP = Math.round((hv / mx) * 50);
           const aP = Math.round((av / mx) * 50);
           return `
-            <div class="compare-bar">
-              <span class="compare-label">${fmt ? fmt(hv) : hv.toFixed(1)}</span>
-              <div class="compare-track">
-                <div class="compare-fill left" style="width:${hP}%"></div>
-                <div class="compare-fill right" style="width:${aP}%"></div>
-              </div>
-              <span class="compare-label right">${fmt ? fmt(av) : av.toFixed(1)}</span>
-            </div>
-            <div class="compare-row-label">${label}</div>
-          `;
+    <div class="compare-bar">
+      <span class="compare-label">${fmt ? fmt(hv) : hv.toFixed(1)}</span>
+      <div class="compare-track">
+        <div class="compare-fill left" style="width:${hP}%"></div>
+        <div class="compare-fill right" style="width:${aP}%"></div>
+      </div>
+      <span class="compare-label right">${fmt ? fmt(av) : av.toFixed(1)}</span>
+    </div>
+    <div class="compare-row-label">${label}</div>`;
         };
 
         const homeSampleNote =
@@ -2171,112 +2154,80 @@
             : "";
 
         document.getElementById("detailContent").innerHTML = `
-          <div class="detail-eyebrow">Match Analysis · GW${currentGW} · ${currentSeason}/${parseInt(currentSeason) + 1}</div>
-          <div class="match-headline">
-            <div class="headline-team">
-              <div class="headline-name">${homeShort}</div>
-              <div class="headline-pos">${homeInfo ? `#${homeInfo.position} · ${homeInfo.points}pts` : "Home"}</div>
-            </div>
-            <div class="headline-vs">vs</div>
-            <div class="headline-team">
-              <div class="headline-name">${awayShort}</div>
-              <div class="headline-pos">${awayInfo ? `#${awayInfo.position} · ${awayInfo.points}pts` : "Away"}</div>
-            </div>
-          </div>
+    <div class="detail-eyebrow">Match Analysis · GW${currentGW} · ${currentSeason}/${parseInt(currentSeason) + 1}</div>
+    <div class="match-headline">
+      <div class="headline-team">
+        <div class="headline-name">${homeShort}</div>
+        <div class="headline-pos">${homeInfo ? `#${homeInfo.position} · ${homeInfo.points}pts` : "Home"}</div>
+      </div>
+      <div class="headline-vs">vs</div>
+      <div class="headline-team">
+        <div class="headline-name">${awayShort}</div>
+        <div class="headline-pos">${awayInfo ? `#${awayInfo.position} · ${awayInfo.points}pts` : "Away"}</div>
+      </div>
+    </div>
 
-          <div class="verdict-box">
-            <div class="verdict-top">
-              <div class="verdict-result ${verdictCls}">${verdictResult}</div>
-              <div class="verdict-conf-badge">${prediction.confidence}% confidence</div>
-            </div>
-            <div class="verdict-reason">${fullVerdict}</div>
-            ${actualResultBox}
-            <div class="threeway">
-              <div class="threeway-home" style="flex:${prediction.probHome}"></div>
-              <div class="threeway-draw" style="flex:${prediction.probDraw}"></div>
-              <div class="threeway-away" style="flex:${prediction.probAway}"></div>
-            </div>
-            <div class="threeway-labels">
-              <span class="tw-label home">Home ${prediction.probHome}%</span>
-              <span class="tw-label">Draw ${prediction.probDraw}%</span>
-              <span class="tw-label away">Away ${prediction.probAway}%</span>
-            </div>
-          </div>
+    <div class="verdict-box">
+      <div class="verdict-top">
+        <div class="verdict-result ${verdictCls}">${verdictResult}</div>
+        <div class="verdict-conf-badge">${prediction.confidence}% confidence</div>
+      </div>
+      <div class="verdict-reason">${fullVerdict}</div>
+      ${actualResultBox}
+      <div class="threeway">
+        <div class="threeway-home" style="flex:${prediction.probHome}"></div>
+        <div class="threeway-draw" style="flex:${prediction.probDraw}"></div>
+        <div class="threeway-away" style="flex:${prediction.probAway}"></div>
+      </div>
+      <div class="threeway-labels">
+        <span class="tw-label home">Home ${prediction.probHome}%</span>
+        <span class="tw-label">Draw ${prediction.probDraw}%</span>
+        <span class="tw-label away">Away ${prediction.probAway}%</span>
+      </div>
+    </div>
 
-          <div class="detail-grid">
-            <div class="detail-block">
-              <div class="detail-block-title">Opponent-Strength Score</div>
-              <div class="metric-row"><span class="metric-label">${homeShort}</span><span class="metric-val">${hs.toFixed(1)}/100</span></div>
-              <div class="metric-row"><span class="metric-label">${awayShort}</span><span class="metric-val">${as_.toFixed(1)}/100</span></div>
-              <div class="metric-row" style="margin-top:8px">
-                <span class="metric-label">Edge</span>
-                <span class="metric-val" style="color:${hs > as_ ? "var(--win)" : hs < as_ ? "var(--loss)" : "var(--draw)"}">${hs > as_ ? homeShort : hs < as_ ? awayShort : "Level"} ${hs !== as_ ? "+" + Math.abs(hs - as_).toFixed(0) : ""}</span>
-              </div>
-              <div class="metric-row"><span class="metric-label">Avg opponent SoS (home)</span><span class="metric-val">${((homeTeamScore?.sos || 0.5) * 100).toFixed(0)}%</span></div>
-              <div class="metric-row"><span class="metric-label">Avg opponent SoS (away)</span><span class="metric-val">${((awayTeamScore?.sos || 0.5) * 100).toFixed(0)}%</span></div>
-              <div class="metric-row"><span class="metric-label">Matches analysed</span><span class="metric-val">${homeTeamScore?.sampleSize || 0} / ${awayTeamScore?.sampleSize || 0}</span></div>
-              ${homeSampleNote}${awaySampleNote}
-            </div>
-            <div class="detail-block">
-              <div class="detail-block-title">Attack &amp; Defense</div>
-              <div class="metric-row"><span class="metric-label">${homeShort} attack</span><span class="metric-val">${(homeTeamScore?.attack ?? 0).toFixed(2)} gpg</span></div>
-              <div class="metric-row"><span class="metric-label">${homeShort} defense</span><span class="metric-val">${(homeTeamScore?.defense ?? 0).toFixed(2)} ga</span></div>
-              <div class="metric-row"><span class="metric-label">${awayShort} attack</span><span class="metric-val">${(awayTeamScore?.attack ?? 0).toFixed(2)} gpg</span></div>
-              <div class="metric-row"><span class="metric-label">${awayShort} defense</span><span class="metric-val">${(awayTeamScore?.defense ?? 0).toFixed(2)} ga</span></div>
-              <div class="metric-row"><span class="metric-label">${homeShort} home W%</span><span class="metric-val">${Math.round((homeTeamScore?.homeRate ?? 0) * 100)}%</span></div>
-              <div class="metric-row"><span class="metric-label">${awayShort} away W%</span><span class="metric-val">${Math.round((awayTeamScore?.awayRate ?? 0) * 100)}%</span></div>
-            </div>
-          </div>
+    <div class="detail-grid">
+      <div class="detail-block">
+        <div class="detail-block-title">Opponent-Strength Score</div>
+        <div class="metric-row"><span class="metric-label">${homeShort}</span><span class="metric-val">${hs.toFixed(1)}/100</span></div>
+        <div class="metric-row"><span class="metric-label">${awayShort}</span><span class="metric-val">${as_.toFixed(1)}/100</span></div>
+        <div class="metric-row" style="margin-top:8px">
+          <span class="metric-label">Edge</span>
+          <span class="metric-val" style="color:${hs > as_ ? "var(--win)" : hs < as_ ? "var(--loss)" : "var(--draw)"}">${hs > as_ ? homeShort : hs < as_ ? awayShort : "Level"} ${hs !== as_ ? "+" + Math.abs(hs - as_).toFixed(0) : ""}</span>
+        </div>
+        <div class="metric-row"><span class="metric-label">Avg opponent SoS (home)</span><span class="metric-val">${((homeTeamScore?.sos || 0.5) * 100).toFixed(0)}%</span></div>
+        <div class="metric-row"><span class="metric-label">Avg opponent SoS (away)</span><span class="metric-val">${((awayTeamScore?.sos || 0.5) * 100).toFixed(0)}%</span></div>
+        <div class="metric-row"><span class="metric-label">Matches analysed</span><span class="metric-val">${homeTeamScore?.sampleSize || 0} / ${awayTeamScore?.sampleSize || 0}</span></div>
+        ${homeSampleNote}${awaySampleNote}
+      </div>
+      <div class="detail-block">
+        <div class="detail-block-title">Attack &amp; Defense</div>
+        <div class="metric-row"><span class="metric-label">${homeShort} attack</span><span class="metric-val">${(homeTeamScore?.attack ?? 0).toFixed(2)} gpg</span></div>
+        <div class="metric-row"><span class="metric-label">${homeShort} defense</span><span class="metric-val">${(homeTeamScore?.defense ?? 0).toFixed(2)} ga</span></div>
+        <div class="metric-row"><span class="metric-label">${awayShort} attack</span><span class="metric-val">${(awayTeamScore?.attack ?? 0).toFixed(2)} gpg</span></div>
+        <div class="metric-row"><span class="metric-label">${awayShort} defense</span><span class="metric-val">${(awayTeamScore?.defense ?? 0).toFixed(2)} ga</span></div>
+        <div class="metric-row"><span class="metric-label">${homeShort} home W%</span><span class="metric-val">${Math.round((homeTeamScore?.homeRate ?? 0) * 100)}%</span></div>
+        <div class="metric-row"><span class="metric-label">${awayShort} away W%</span><span class="metric-val">${Math.round((awayTeamScore?.awayRate ?? 0) * 100)}%</span></div>
+      </div>
+    </div>
 
-          <div class="section-subtitle">Comparative ratings</div>
-          ${compareRow("Strength score (SoS-adjusted, 0-100)", hs, as_)}
-          ${compareRow("Goals scored per game", homeTeamScore?.attack ?? 0, awayTeamScore?.attack ?? 0)}
-          ${compareRow("Goals allowed per game", homeTeamScore?.defense ?? 0, awayTeamScore?.defense ?? 0)}
-          ${compareRow("Home / Away win rate", homeTeamScore?.homeRate ?? 0, awayTeamScore?.awayRate ?? 0, (v) => Math.round(v * 100) + "%")}
+    <div class="section-subtitle">Comparative ratings</div>
+    ${compareRow("Strength score (SoS-adjusted, 0-100)", hs, as_)}
+    ${compareRow("Goals scored per game", homeTeamScore?.attack ?? 0, awayTeamScore?.attack ?? 0)}
+    ${compareRow("Goals allowed per game", homeTeamScore?.defense ?? 0, awayTeamScore?.defense ?? 0)}
+    ${compareRow("Home / Away win rate", homeTeamScore?.homeRate ?? 0, awayTeamScore?.awayRate ?? 0, (v) => Math.round(v * 100) + "%")}
 
-          <div class="section-subtitle">${homeShort} — recent results (opponent-weighted, most recent first)</div>
-          <div class="recent-matches">${renderRecent(homeRecent)}</div>
+    <div class="section-subtitle">${homeShort} — recent results (opponent-weighted, most recent first)</div>
+    <div class="recent-matches">${renderRecent(homeRecent)}</div>
 
-          <div class="section-subtitle">${awayShort} — recent results (opponent-weighted, most recent first)</div>
-          <div class="recent-matches">${renderRecent(awayRecent)}</div>
+    <div class="section-subtitle">${awayShort} — recent results (opponent-weighted, most recent first)</div>
+    <div class="recent-matches">${renderRecent(awayRecent)}</div>
 
-          <div class="method-box">
-            <div class="method-title">How this prediction was calculated</div>
-            <div class="method-step">
-              <div class="method-step-num">1</div>
-              <div class="method-step-text"><strong>Pull last 10 finished matches</strong> for each team via the API, and look up the league position of every opponent faced in those matches.</div>
-            </div>
-            <div class="method-step">
-              <div class="method-step-num">2</div>
-              <div class="method-step-text"><strong>Score opponent difficulty (SoS)</strong> on a 0–1 scale: facing the league leader scores close to 1.0, facing the bottom side scores close to 0.0.</div>
-            </div>
-            <div class="method-step">
-              <div class="method-step-num">3</div>
-              <div class="method-step-text"><strong>Weight each result</strong> by recency (most recent match weighted highest, oldest weighted lowest) multiplied by a difficulty factor (0.4 for weak opponents up to 1.0 for strong ones) — so a win over a relegation side contributes far less than a win or draw over a top side.</div>
-            </div>
-            <div class="method-step">
-              <div class="method-step-num">4</div>
-              <div class="method-step-text"><strong>Add goal-difference and clean-sheet bonuses</strong>, scaled by opponent strength, and a penalty for conceding 3+ goals — so the magnitude of a result against a strong opponent matters too.</div>
-            </div>
-            <div class="method-step">
-              <div class="method-step-num">5</div>
-              <div class="method-step-text"><strong>Add a league-position bonus</strong> (worth up to 18 points of 100) so current standing still matters, but recent opponent-adjusted form dominates the score.</div>
-            </div>
-            <div class="method-step">
-              <div class="method-step-num">6</div>
-              <div class="method-step-text"><strong>Convert scores to win/draw/away probabilities:</strong> the home team gets a fixed +8 point home-advantage bump, then both scores are converted to a share of the total. Draw probability rises automatically when the two scores are close, and shrinks as the gap widens — this is what allows draws and away wins to actually appear, instead of one outcome always dominating.</div>
-            </div>
-            <div class="formula-box">SoS(opponent) = 1 − (oppRank − 1) / (totalTeams − 1)
-difficulty    = 0.4 + SoS × 0.6
-weight(match) = recencyFactor × difficulty
-perf          = (points/3 × 100) + goalDiff × (5 + SoS×15) + cleanSheetBonus − concededPenalty
-teamScore     = Σ(perf × weight) / Σ(weight)   [+ league position bonus, clamped 2–98]
-
-P(home) ∝ teamScore(home) + 8   |   P(away) ∝ teamScore(away)
-P(draw) = 0.32 − |scoreGap| × 0.006   (clamped 14%–34%)
-P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
-          </div>
-        `;
+    <div style="margin-top:16px;padding:12px 16px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div style="font-size:12px;color:var(--text-muted);font-weight:500;line-height:1.5">Curious how these predictions are calculated? The full methodology — SoS scoring, weighting formula, and probability model — is explained on its own page.</div>
+      <a href="methodology.html" target="_blank" style="flex-shrink:0;display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:7px;background:var(--accent-dim);border:1px solid var(--accent-glow);color:var(--accent);font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;transition:background .14s" onmouseover="this.style.background='rgba(124,116,255,0.22)'" onmouseout="this.style.background='var(--accent-dim)'">How it works →</a>
+    </div>
+  `;
 
         document.getElementById("detailOverlay").classList.add("open");
         document.body.style.overflow = "hidden";
@@ -2289,11 +2240,14 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
       }
 
       // ── League dropdown ──
+
       function renderLeagueDropdown() {
         const panel = document.getElementById("leagueDropdownPanel");
         panel.innerHTML = LEAGUES.map((l) => {
           const state = leagueReadyState[l.code];
           const isActive = l.code === currentLeague;
+          // Greyed out / unclickable while this specific league is loading OR
+          // while the initial sequential preload hasn't reached it yet.
           const disabled = state === "loading" || state === "queued";
           const statusCls =
             state === "ready"
@@ -2304,12 +2258,11 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
                   ? ""
                   : "";
           return `
-            <div class="league-item ${isActive ? "active" : ""} ${disabled ? "disabled" : ""}" onclick="${disabled ? "" : `selectLeague('${l.code}')`}">
-              <span class="league-item-flag">${l.flag}</span>
-              <span class="league-item-name">${l.name}</span>
-              <span class="league-item-status ${statusCls}"></span>
-            </div>
-          `;
+    <div class="league-item ${isActive ? "active" : ""} ${disabled ? "disabled" : ""}" onclick="${disabled ? "" : `selectLeague('${l.code}')`}">
+      <span class="league-item-flag">${l.flag}</span>
+      <span class="league-item-name">${l.name}</span>
+      <span class="league-item-status ${statusCls}"></span>
+    </div>`;
         }).join("");
       }
 
@@ -2335,6 +2288,8 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
       });
 
       async function selectLeague(code) {
+        // Leagues that are still queued/loading are not clickable (the dropdown
+        // already omits the onclick handler for them), but guard here too.
         if (
           leagueReadyState[code] === "loading" ||
           leagueReadyState[code] === "queued"
@@ -2345,20 +2300,23 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
         document.getElementById("leagueDropdownBtn").classList.remove("open");
         document.getElementById("leagueDropdownPanel").classList.remove("open");
 
-        // Close drawer on mobilee
-        toggleDrawer(false);
-
         currentLeague = code;
         const l = LEAGUE_MAP[code];
         document.getElementById("activeLeagueFlag").textContent = l.flag;
         document.getElementById("activeLeagueText").textContent = l.name;
 
+        // Use this league's already-detected "current" gameweek if we have it,
+        // otherwise null triggers auto-detection inside loadLeague.
         const gwKey = `${code}_${currentSeason}`;
         const targetGW = autoGwCache[gwKey] || null;
         await loadLeague(code, targetGW);
       }
 
       // ── Main load flow ──
+      // Every successful load is written into predictionCache keyed by
+      // league+season+gameweek, so returning to a league (or gameweek) that was
+      // already loaded is instant and makes zero network calls.
+
       function cacheKey(league, season, gw) {
         return `${league}_${season}_${gw}`;
       }
@@ -2384,9 +2342,10 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
 
       async function loadLeague(league, gw, opts) {
         opts = opts || {};
-        const silent = !!opts.silent;
+        const silent = !!opts.silent; // used during background preload of non-active leagues
         const name = LEAGUE_MAP[league]?.name || league;
 
+        // ── Serve from cache instantly if we already have this exact gw ──
         if (gw) {
           const cached = predictionCache[cacheKey(league, currentSeason, gw)];
           if (cached) {
@@ -2447,6 +2406,7 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
               ? "inline-block"
               : "none";
 
+          // Re-check cache now that gwToLoad is resolved (covers the "gw was null" path)
           const existing =
             predictionCache[cacheKey(league, currentSeason, gwToLoad)];
           if (existing) {
@@ -2466,11 +2426,11 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
           const matches = await fetchMatches(league, gwToLoad, currentSeason);
 
           if (!matches.length) {
-            predictionCache[cacheKey(league, currentSeason, gwToLoad)] = {
+            _origSaveToCache(cacheKey(league, currentSeason, gwToLoad), {
               predictions: [],
               isAuto,
               matchCount: 0,
-            };
+            });
             if (!silent && league === currentLeague) {
               document.getElementById("fixturesGrid").innerHTML =
                 `<div class="empty-state">No matches found for Gameweek ${gwToLoad}. Try an adjacent gameweek, or this league/season may not have fixtures yet.</div>`;
@@ -2489,39 +2449,52 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
             ...new Set(matches.flatMap((m) => [m.homeTeam.id, m.awayTeam.id])),
           ];
           const recentData = {};
-          const batchSize = 3;
-          const totalBatches = Math.ceil(teamIds.length / batchSize);
 
           const earliestKickoff = matches.reduce((min, m) => {
             const d = m.utcDate ? m.utcDate.slice(0, 10) : null;
             return d && (!min || d < min) ? d : min;
           }, null);
 
-          for (let i = 0; i < teamIds.length; i += batchSize) {
-            const batch = teamIds.slice(i, i + batchSize);
-            const batchNum = Math.floor(i / batchSize) + 1;
-            if (!silent) {
+          // Silent (background) leagues: fetch one team at a time to avoid
+          // flooding the shared rate-limiter queue with hundreds of pending
+          // requests from multiple leagues simultaneously.
+          // Visible (first) league: batch 3 at a time for faster perceived load.
+          if (silent) {
+            for (let i = 0; i < teamIds.length; i++) {
+              recentData[teamIds[i]] = await fetchTeamRecent(
+                teamIds[i],
+                currentSeason,
+                standings,
+                earliestKickoff,
+              );
+            }
+          } else {
+            const batchSize = 3;
+            const totalBatches = Math.ceil(teamIds.length / batchSize);
+            for (let i = 0; i < teamIds.length; i += batchSize) {
+              const batch = teamIds.slice(i, i + batchSize);
+              const batchNum = Math.floor(i / batchSize) + 1;
               const progress = 25 + Math.round((batchNum / totalBatches) * 65);
               renderLoading(
                 `Analysing ${matches.length} fixtures…`,
-                `Fetching team history — batch ${batchNum}/${totalBatches}`,
+                `Fetching team history — ${batchNum}/${totalBatches}`,
               );
               showOverallProgress(
                 progress,
                 `Analysing ${matches.length} fixtures`,
-                `Fetching team history — batch ${batchNum} of ${totalBatches} (rate-limited to 9 req/min)`,
+                `Fetching team history — batch ${batchNum} of ${totalBatches}`,
+              );
+              await Promise.all(
+                batch.map(async (id) => {
+                  recentData[id] = await fetchTeamRecent(
+                    id,
+                    currentSeason,
+                    standings,
+                    earliestKickoff,
+                  );
+                }),
               );
             }
-            await Promise.all(
-              batch.map(async (id) => {
-                recentData[id] = await fetchTeamRecent(
-                  id,
-                  currentSeason,
-                  standings,
-                  earliestKickoff,
-                );
-              }),
-            );
           }
 
           if (!silent) {
@@ -2544,11 +2517,13 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
               homeRecent,
               homeInfo,
               standings.total,
+              homeId,
             );
             const awayTeamScore = computeTeamScore(
               awayRecent,
               awayInfo,
               standings.total,
+              awayId,
             );
             const prediction = predictMatch(homeTeamScore, awayTeamScore);
             const homeRecentWithContrib = homeTeamScore.breakdown.length
@@ -2571,11 +2546,12 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
             };
           });
 
-          predictionCache[cacheKey(league, currentSeason, gwToLoad)] = {
+          // ── Persist to cache + sessionStorage so page navigation doesn't wipe data ──
+          _origSaveToCache(cacheKey(league, currentSeason, gwToLoad), {
             predictions: computedPredictions,
             isAuto,
             matchCount: computedPredictions.length,
-          };
+          });
 
           if (!silent && league === currentLeague) {
             predictions = computedPredictions;
@@ -2636,11 +2612,8 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
       async function handleRefresh() {
         if (refreshing) return;
         refreshing = true;
-        const btn = document.getElementById("refreshBtn");
-        const icon = document.getElementById("refreshIcon");
-        btn.disabled = true;
-        icon.classList.add("spin");
 
+        // Clear cache for currently viewed league+gw only
         Object.keys(allMatches)
           .filter((k) => k.startsWith(currentLeague))
           .forEach((k) => delete allMatches[k]);
@@ -2650,10 +2623,9 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
           delete predictionCache[
             cacheKey(currentLeague, currentSeason, currentGW)
           ];
+        persistCacheToSession();
 
         await loadLeague(currentLeague, currentGW);
-        btn.disabled = false;
-        icon.classList.remove("spin");
         refreshing = false;
       }
 
@@ -2662,6 +2634,8 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
         .addEventListener("change", async (e) => {
           currentSeason = e.target.value;
           currentGW = null;
+          // A season change invalidates all caches — different season's fixtures,
+          // recent form, and gameweek numbering are entirely different data.
           Object.keys(recentCache).forEach((k) => delete recentCache[k]);
           Object.keys(predictionCache).forEach(
             (k) => delete predictionCache[k],
@@ -2687,21 +2661,125 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
           changeGW(+1);
       });
 
-      // ── Sequential preload ──
+      // ── Sequential preload: walk every league top-to-bottom on startup ──
+      // Only one league loads at a time (no concurrent bursts across leagues),
+      // and each league is greyed out / unclickable until its own load finishes.
+      // The first league (top of the list) is loaded "live" — i.e. it drives the
+      // visible page and overall progress bar — all subsequent leagues load
+      // silently in the background and simply populate the cache + status dots.
+
+      // ── Session persistence ──
+      // predictionCache lives only in JS memory and dies on navigation.
+      // We mirror it to sessionStorage so returning from the bet slip page
+      // restores all loaded leagues instantly without any API calls.
+      const SESSION_CACHE_KEY = "fixture_ai_pred_cache";
+      const SESSION_GW_KEY = "fixture_ai_auto_gw";
+      const SESSION_STATE_KEY = "fixture_ai_league_states";
+
+      function persistCacheToSession() {
+        try {
+          // sessionStorage has ~5MB limit; we only store what we need to
+          // re-render (no raw API data, just computed prediction objects).
+          sessionStorage.setItem(
+            SESSION_CACHE_KEY,
+            JSON.stringify(predictionCache),
+          );
+          sessionStorage.setItem(SESSION_GW_KEY, JSON.stringify(autoGwCache));
+          // Store which leagues are ready so we can restore status dots
+          const states = {};
+          LEAGUES.forEach((l) => {
+            states[l.code] = leagueReadyState[l.code];
+          });
+          sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(states));
+        } catch (e) {
+          // sessionStorage full or unavailable — silently skip; app still works
+          console.warn("Could not persist cache to sessionStorage:", e.message);
+        }
+      }
+
+      function restoreCacheFromSession() {
+        try {
+          const raw = sessionStorage.getItem(SESSION_CACHE_KEY);
+          const gws = sessionStorage.getItem(SESSION_GW_KEY);
+          const sts = sessionStorage.getItem(SESSION_STATE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            // Merge into predictionCache (don't overwrite anything already in memory)
+            Object.assign(predictionCache, parsed);
+          }
+          if (gws) Object.assign(autoGwCache, JSON.parse(gws));
+          if (sts) {
+            const states = JSON.parse(sts);
+            Object.keys(states).forEach((code) => {
+              leagueReadyState[code] = states[code];
+            });
+          }
+          return !!raw; // true = we had data
+        } catch (e) {
+          console.warn(
+            "Could not restore cache from sessionStorage:",
+            e.message,
+          );
+          return false;
+        }
+      }
+
+      // Patch the two places that write to predictionCache so they also
+      // mirror to sessionStorage immediately.
+      const _origSaveToCache = (key, value) => {
+        predictionCache[key] = value;
+        persistCacheToSession();
+      };
+
       async function startSequentialPreload() {
         if (preloadRunning) return;
         preloadRunning = true;
 
+        // ── Try to restore from sessionStorage first ──
+        const hadCache = restoreCacheFromSession();
+
+        // Mark any league that already has a cache entry as ready
+        // so it lights up immediately and is clickable.
         LEAGUES.forEach((l) => {
-          leagueReadyState[l.code] = "queued";
+          const gwKey = `${l.code}_${currentSeason}`;
+          const gw = autoGwCache[gwKey];
+          if (gw && predictionCache[cacheKey(l.code, currentSeason, gw)]) {
+            leagueReadyState[l.code] = "ready";
+          } else if (leagueReadyState[l.code] !== "ready") {
+            leagueReadyState[l.code] = "queued";
+          }
         });
         renderLeagueDropdown();
 
+        // ── Show the first already-cached league immediately ──
+        const firstCached = LEAGUES.find(
+          (l) => leagueReadyState[l.code] === "ready",
+        );
+        if (firstCached) {
+          currentLeague = firstCached.code;
+          const lMeta = LEAGUE_MAP[firstCached.code];
+          document.getElementById("activeLeagueFlag").textContent = lMeta.flag;
+          document.getElementById("activeLeagueText").textContent = lMeta.name;
+          const gwKey = `${firstCached.code}_${currentSeason}`;
+          const gw = autoGwCache[gwKey];
+          const cached =
+            predictionCache[cacheKey(firstCached.code, currentSeason, gw)];
+          if (cached) applyCachedResult(cached, firstCached.code, gw);
+        }
+
+        // ── Load any league that isn't cached yet ──
         for (let i = 0; i < LEAGUES.length; i++) {
           const league = LEAGUES[i].code;
-          const isFirst = i === 0;
+          const gwKey = `${league}_${currentSeason}`;
+          const gw = autoGwCache[gwKey];
 
-          if (isFirst) {
+          // Skip if already cached
+          if (gw && predictionCache[cacheKey(league, currentSeason, gw)])
+            continue;
+
+          const isVisible = !firstCached && i === 0;
+
+          if (isVisible) {
             currentLeague = league;
             const l = LEAGUE_MAP[league];
             document.getElementById("activeLeagueFlag").textContent = l.flag;
@@ -2715,9 +2793,81 @@ P(home), P(away) scaled so P(home)+P(draw)+P(away) = 100%</div>
         preloadRunning = false;
       }
 
+      // ── Bet slip helpers ──
+      const SLIP_KEY = "fixture_ai_bets";
+      function loadSlip() {
+        try {
+          return JSON.parse(localStorage.getItem(SLIP_KEY) || "[]");
+        } catch {
+          return [];
+        }
+      }
+      function saveSlip(bets) {
+        localStorage.setItem(SLIP_KEY, JSON.stringify(bets));
+      }
+      function isInSlip(slipId) {
+        return loadSlip().some((b) => b.slipId === slipId);
+      }
+
+      function showSlipToast(msg) {
+        const el = document.getElementById("slipToast");
+        if (!el) return;
+        el.textContent = msg;
+        el.classList.add("show");
+        setTimeout(() => el.classList.remove("show"), 2400);
+      }
+
+      function addToSlip(idx, btn) {
+        const p = displayedPredictions[idx];
+        if (!p) return;
+        const { match, prediction } = p;
+        const slipId = `${match.homeTeam.id}_${match.awayTeam.id}_${currentGW}_${currentLeague}`;
+        if (isInSlip(slipId)) {
+          showSlipToast("Already in bet slip");
+          return;
+        }
+        const pick =
+          prediction.outcome === "home"
+            ? "Home Win"
+            : prediction.outcome === "away"
+              ? "Away Win"
+              : "Draw";
+        const bet = {
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+          slipId,
+          league: currentLeague,
+          homeTeam: match.homeTeam.shortName || match.homeTeam.name,
+          awayTeam: match.awayTeam.shortName || match.awayTeam.name,
+          matchDate: match.utcDate || null,
+          pick,
+          gameweek: currentGW,
+          odds: null,
+          stake: null,
+          notes: null,
+          status: "pending",
+          addedAt: new Date().toISOString(),
+          predProbHome: prediction.probHome,
+          predProbDraw: prediction.probDraw,
+          predProbAway: prediction.probAway,
+          predConfidence: prediction.confidence,
+        };
+        const bets = loadSlip();
+        bets.unshift(bet);
+        saveSlip(bets);
+        if (btn) {
+          btn.textContent = "✓";
+          btn.classList.add("added");
+          btn.title = "Already in bet slip";
+        }
+        showSlipToast(
+          "✓ " + bet.homeTeam + " vs " + bet.awayTeam + " added to slip",
+        );
+      }
+
       // ── Init ──
       renderLeagueDropdown();
       startSequentialPreload();
     </script>
+    <div class="slip-toast" id="slipToast"></div>
   </body>
 </html>
