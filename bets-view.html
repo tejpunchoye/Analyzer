@@ -300,6 +300,8 @@ button{cursor:pointer;border:none;background:none;font-family:var(--sans);color:
       <div class="summary-row"><span class="summary-label">Draw</span><span class="sv" style="color:var(--draw)" id="dDraw">0</span></div>
       <div class="summary-row"><span class="summary-label">Lost</span><span class="sv lost" id="dLost">0</span></div>
       <div class="summary-row"><span class="summary-label">Pending</span><span class="sv pending" id="dPending">0</span></div>
+      <div class="sep-thin"></div>
+      <button onclick="removeAll()" style="width:100%;padding:8px;border-radius:7px;background:none;border:1px solid var(--border);color:var(--text-dim);font-size:11.5px;font-weight:600;cursor:pointer;transition:all .14s;font-family:var(--sans)" onmouseover="this.style.borderColor='var(--loss)';this.style.color='var(--loss)';this.style.background='var(--loss-dim)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-dim)';this.style.background='none'">🗑 Remove all</button>
     </div>
   </aside>
 
@@ -470,6 +472,22 @@ function deletebet(id){
   allBets=allBets.filter(b=>b.id!==id);
   save();
   toast('Bet removed');
+}
+
+function removeAll(){
+  if(!allBets.length){ toast('Bet slip is already empty'); return; }
+  if(!confirm(`Remove all ${allBets.length} bet${allBets.length!==1?'s':''}?`))return;
+  closeAnyDropdown();
+  // Snapshot the current summary before clearing, so the counts remain visible
+  const snapIds = ['dTotal','dWon','dDraw','dLost','dPending','mTotal','mWon','mDraw','mLost','mPending'];
+  const snap = {};
+  snapIds.forEach(id => { const el = document.getElementById(id); if(el) snap[id] = el.textContent; });
+  allBets = [];
+  localStorage.setItem(SLIP_KEY, JSON.stringify(allBets));
+  render(); // clear the cards
+  // Restore summary counts so they don't zero out
+  snapIds.forEach(id => { const el = document.getElementById(id); if(el && snap[id] !== undefined) el.textContent = snap[id]; });
+  toast('Bet slip cleared');
 }
 
 function toggleOddsEdit(id){

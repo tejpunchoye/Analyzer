@@ -110,7 +110,7 @@
       }
 
       .nav-section {
-        padding: 16px 18px 8px;
+        padding: 20px 18px 10px;
       }
       .nav-label {
         font-size: 10px;
@@ -122,7 +122,7 @@
 
       /* League dropdown */
       .league-dropdown-wrap {
-        padding: 6px 18px 4px;
+        padding: 4px 18px 18px;
         position: relative;
       }
       .league-dropdown-btn {
@@ -262,11 +262,11 @@
       .sidebar-sep {
         height: 1px;
         background: var(--border);
-        margin: 14px 18px;
+        margin: 10px 18px;
       }
 
       .season-section {
-        padding: 0 18px 14px;
+        padding: 20px 18px 18px;
       }
       .season-label {
         font-size: 10px;
@@ -274,11 +274,11 @@
         letter-spacing: 0.1em;
         text-transform: uppercase;
         color: var(--text-dim);
-        margin-bottom: 8px;
+        margin-bottom: 10px;
       }
       .season-select {
         width: 100%;
-        padding: 9px 12px;
+        padding: 10px 12px;
         border-radius: 9px;
         background: var(--surface2);
         border: 1px solid var(--border);
@@ -299,7 +299,7 @@
       .season-note {
         font-size: 10.5px;
         color: var(--text-dim);
-        margin-top: 7px;
+        margin-top: 8px;
         line-height: 1.5;
       }
       .spin {
@@ -1302,7 +1302,7 @@
       /* ── Bet slip nav button in sidebar ── */
       .bet-nav-btn {
         display: flex; align-items: center; gap: 8px;
-        padding: 10px 12px; border-radius: 9px; margin: 0 18px 10px;
+        padding: 10px 12px; border-radius: 9px; margin: 0 18px 8px;
         background: var(--surface2); border: 1px solid var(--border);
         color: var(--text-muted); font-size: 12.5px; font-weight: 600;
         cursor: pointer; transition: all 0.15s; text-decoration: none;
@@ -1310,6 +1310,29 @@
       }
       .bet-nav-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
       .bet-nav-icon { font-size: 14px; }
+
+      /* ── API call counter ── */
+      .api-counter {
+        margin: 10px 18px 0;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      .api-counter-label { font-size: 10.5px; color: var(--text-dim); font-weight: 600; }
+      .api-counter-val {
+        font-size: 12px; font-weight: 800; font-family: var(--mono);
+        color: var(--text-muted); background: var(--surface3);
+        padding: 2px 8px; border-radius: 20px; border: 1px solid var(--border);
+      }
+      .drawer-api-counter {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 9px 12px; border-radius: 8px;
+        background: var(--surface2); border: 1px solid var(--border); margin-top: 4px;
+      }
+      .drawer-api-label { font-size: 11px; color: var(--text-dim); font-weight: 600; }
+      .drawer-api-val { font-size: 12px; font-weight: 800; font-family: var(--mono); color: var(--text-muted); }
 
       /* ── Add-to-slip button on fixture cards ── */
       .slip-btn {
@@ -1343,6 +1366,17 @@
           <div class="logo-sub">Opponent-Strength Engine</div>
         </div>
 
+        <div class="season-section">
+          <div class="season-label">Season</div>
+          <select class="season-select" id="seasonSelect">
+            <option value="2024">2024/25</option>
+            <option value="2025">2025/26</option>
+            <option value="2026" selected>2026/27</option>
+          </select>
+          <div class="season-note" id="seasonNote">2026/27 is the current season.</div>
+        </div>
+
+        <div class="sidebar-sep"></div>
         <div class="nav-section"><div class="nav-label">League</div></div>
         <div class="league-dropdown-wrap">
           <button
@@ -1362,25 +1396,19 @@
         </div>
 
         <div class="sidebar-sep"></div>
-        <div class="season-section">
-          <div class="season-label">Season</div>
-          <select class="season-select" id="seasonSelect">
-            <option value="2024">2024/25</option>
-            <option value="2025" selected>2025/26</option>
-          </select>
-          <div class="season-note" id="seasonNote">
-            2025/26 is the current season. 2026/27 begins in ~2 months and has
-            no fixtures yet.
-          </div>
-        </div>
-
-        <div class="sidebar-sep"></div>
+        <a href="index.html" class="bet-nav-btn">
+          <span class="bet-nav-icon">📊</span> Predictions
+        </a>
         <a href="bets-view.html" class="bet-nav-btn">
           <span class="bet-nav-icon">🎯</span> Bet Slip
         </a>
         <a href="methodology.html" class="bet-nav-btn" target="_blank">
           <span class="bet-nav-icon">📐</span> Methodology
         </a>
+        <div class="api-counter">
+          <span class="api-counter-label">API calls this session</span>
+          <span class="api-counter-val" id="apiCounterVal">0</span>
+        </div>
       </aside>
 
       <!-- ── Main ── -->
@@ -1483,21 +1511,29 @@
           <div class="drawer-logo-name">Fixture AI</div>
           <div class="drawer-logo-sub">Opponent-Strength Engine</div>
         </div>
-        <div class="drawer-section-label">League</div>
-        <div class="drawer-league-list" id="drawerLeagueList"></div>
         <div class="drawer-section-label">Season</div>
         <select class="drawer-season-select" id="drawerSeasonSelect">
           <option value="2024">2024/25</option>
-          <option value="2025" selected>2025/26</option>
+          <option value="2025">2025/26</option>
+          <option value="2026" selected>2026/27</option>
         </select>
+        <div class="drawer-section-label">League</div>
+        <div class="drawer-league-list" id="drawerLeagueList"></div>
         <div class="drawer-section-label">Navigate</div>
         <div class="drawer-nav-links">
-          <a href="bets-view.html" class="drawer-nav-link accent">
+          <a href="index.html" class="drawer-nav-link accent">
+            <span class="drawer-nav-icon">📊</span> Predictions
+          </a>
+          <a href="bets-view.html" class="drawer-nav-link">
             <span class="drawer-nav-icon">🎯</span> Bet Slip
           </a>
           <a href="methodology.html" class="drawer-nav-link" target="_blank">
             <span class="drawer-nav-icon">📐</span> Methodology
           </a>
+        </div>
+        <div class="drawer-api-counter">
+          <span class="drawer-api-label">API calls this session</span>
+          <span class="drawer-api-val" id="drawerApiCounterVal">0</span>
         </div>
       </div>
     </div>
@@ -1551,13 +1587,23 @@
             `API ${res.status}${txt ? ": " + txt.slice(0, 140) : ""}`,
           );
         }
+        apiCallCount++;
+        updateApiCounter();
         return res.json();
       }
 
       // ── State ──
       let currentLeague = "PL";
-      let currentSeason = "2025"; // 2025/26 is the current season
+      let currentSeason = "2026"; // 2026/27 is the current season
       let currentGW = null;
+      let apiCallCount = 0; // total API calls made this session
+
+      function updateApiCounter() {
+        const el = document.getElementById("apiCounterVal");
+        const el2 = document.getElementById("drawerApiCounterVal");
+        if (el)  el.textContent  = apiCallCount;
+        if (el2) el2.textContent = apiCallCount;
+      }
       let maxGW = 38;
       let minGW = 1;
       let allStandings = {};
@@ -1585,18 +1631,18 @@
       let preloadIndex = -1; // index into LEAGUES currently being preloaded
 
       const LEAGUES = [
-       // { code: "PL", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Premier League" },
-        // { code: "PD", flag: "🇪🇸", name: "La Liga" },
-        // { code: "BL1", flag: "🇩🇪", name: "Bundesliga" },
-        // { code: "SA", flag: "🇮🇹", name: "Serie A" },
-        // { code: "FL1", flag: "🇫🇷", name: "Ligue 1" },
-        // { code: "ELC", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Championship" },
-        // { code: "PPL", flag: "🇵🇹", name: "Primeira Liga" },
-        // { code: "DED", flag: "🇳🇱", name: "Eredivisie" },
+        { code: "PL",  flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Premier League" },
+        { code: "PD",  flag: "🇪🇸", name: "La Liga" },
+        { code: "BL1", flag: "🇩🇪", name: "Bundesliga" },
+        { code: "SA",  flag: "🇮🇹", name: "Serie A" },
+        { code: "FL1", flag: "🇫🇷", name: "Ligue 1" },
+        { code: "ELC", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Championship" },
+        { code: "PPL", flag: "🇵🇹", name: "Primeira Liga" },
+        { code: "DED", flag: "🇳🇱", name: "Eredivisie" },
         { code: "BSA", flag: "🇧🇷", name: "Série A (Brazil)" },
-        // { code: "WC", flag: "🌍", name: "FIFA World Cup" },
-        // { code: "CL", flag: "🏆", name: "Champions League" },
-        // { code: "EC", flag: "🇪🇺", name: "Euro Championship" },
+        { code: "WC",  flag: "🌍",  name: "FIFA World Cup" },
+        { code: "CL",  flag: "🏆",  name: "Champions League" },
+        { code: "EC",  flag: "🇪🇺", name: "Euro Championship" },
       ];
       const LEAGUE_MAP = Object.fromEntries(LEAGUES.map((l) => [l.code, l]));
 
@@ -1876,21 +1922,55 @@
 
       async function fetchCurrentGW(league, season) {
         try {
-          const data = await apiFetch(
-            `/competitions/${league}?season=${season}`,
+          const data = await apiFetch(`/competitions/${league}?season=${season}`);
+
+          const total = data.currentSeason?.numberOfMatchdays || null;
+          const currentMatchday = data.currentSeason?.currentMatchday || null;
+
+          if (total) maxGW = total;
+
+          // Determine if this is a completed past season.
+          // A season string "2024" covers Aug 2024 – Jun/Jul 2025.
+          // Today is July 2026, so 2024 and 2025 are both fully past.
+          const now = new Date();
+          const seasonYear = parseInt(season, 10);
+          // Season ends roughly in May/June of (seasonYear + 1).
+          // It's definitely over if we are in July or later of (seasonYear + 1).
+          const seasonEndYear  = seasonYear + 1;
+          const isPastSeason   = now.getFullYear() > seasonEndYear ||
+            (now.getFullYear() === seasonEndYear && now.getMonth() >= 6); // July or later (month is 0-indexed)
+
+          // For a completed season, always start at matchweek 1.
+          // The user can navigate forward from there.
+          if (isPastSeason) {
+            return 1;
+          }
+
+          // No matchday pointer — season not started yet
+          if (!currentMatchday) return 1;
+
+          // Current season: check whether the active GW is fully played.
+          // If so, point to the next upcoming GW.
+          const matchData = await apiFetch(
+            `/competitions/${league}/matches?season=${season}&matchday=${currentMatchday}`
           );
-          const total = data.currentSeason?.numberOfMatchdays || 38;
-          const current = data.currentSeason?.currentMatchday;
-          // Set the navigation ceiling.
-          maxGW = total;
-          // If currentMatchday is missing, null, or 1, the season is either not
-          // started or already completed and the API has reset the pointer.
-          // In that case use numberOfMatchdays so a finished season always
-          // opens on its last round rather than round 1.
-          if (!current || current <= 1) return total;
-          return current;
+          const matches = matchData.matches || [];
+
+          if (matches.length === 0) return currentMatchday;
+
+          const allFinished = matches.every(m =>
+            m.status === "FINISHED" || m.status === "AWARDED"
+          );
+
+          if (allFinished && currentMatchday < (total || 99)) {
+            if (total) maxGW = total;
+            return currentMatchday + 1;
+          }
+
+          return currentMatchday;
+
         } catch {
-          return 38;
+          return 1;
         }
       }
 
@@ -2363,11 +2443,36 @@
     ${compareRow("Goals allowed per game", homeTeamScore?.defense ?? 0, awayTeamScore?.defense ?? 0)}
     ${compareRow("Home / Away win rate", homeTeamScore?.homeRate ?? 0, awayTeamScore?.awayRate ?? 0, (v) => Math.round(v * 100) + "%")}
 
-    <div class="section-subtitle">${homeShort} — recent results (opponent-weighted, most recent first)</div>
-    <div class="recent-matches">${renderRecent(homeRecent)}</div>
-
-    <div class="section-subtitle">${awayShort} — recent results (opponent-weighted, most recent first)</div>
-    <div class="recent-matches">${renderRecent(awayRecent)}</div>
+    ${(() => {
+      const noData = (!homeInfo || homeInfo.played === 0) && (!awayInfo || awayInfo.played === 0);
+      if (noData) return `
+        <div style="margin-top:16px;padding:14px 16px;border-radius:9px;background:rgba(255,201,77,0.07);border:1px solid rgba(255,201,77,0.25)">
+          <div style="font-size:12.5px;font-weight:700;color:var(--draw);margin-bottom:5px">⚡ Season ${currentSeason}/${parseInt(currentSeason)+1} — early season</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">No matches have been played in this season yet. Predictions are based on league registration order and expected squad quality. Analysis will improve as matches are played.</div>
+        </div>`;
+      const statGrid = (info) => {
+        if (!info) return '<div style="color:var(--text-dim);font-size:12px">No data</div>';
+        return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center">
+          <div><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">P</div><div style="font-size:14px;font-weight:700;font-family:var(--mono)">${info.played}</div></div>
+          <div><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">W</div><div style="font-size:14px;font-weight:700;font-family:var(--mono);color:var(--win)">${info.won}</div></div>
+          <div><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">D</div><div style="font-size:14px;font-weight:700;font-family:var(--mono);color:var(--draw)">${info.draw}</div></div>
+          <div><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">L</div><div style="font-size:14px;font-weight:700;font-family:var(--mono);color:var(--loss)">${info.lost}</div></div>
+          <div><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">GF</div><div style="font-size:14px;font-weight:700;font-family:var(--mono)">${info.gf}</div></div>
+          <div><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">GA</div><div style="font-size:14px;font-weight:700;font-family:var(--mono)">${info.ga}</div></div>
+          <div><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">GD</div><div style="font-size:14px;font-weight:700;font-family:var(--mono);color:${info.gf-info.ga>=0?'var(--win)':'var(--loss)'}">${info.gf-info.ga>0?'+':''}${info.gf-info.ga}</div></div>
+          <div><div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px">PTS</div><div style="font-size:14px;font-weight:700;font-family:var(--mono);color:var(--accent)">${info.points}</div></div>
+        </div>`;
+      };
+      return `
+        <div class="section-subtitle">${homeShort} — season record</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:13px 15px">${statGrid(homeInfo)}</div>
+        <div class="section-subtitle">${awayShort} — season record</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:13px 15px">${statGrid(awayInfo)}</div>
+        <div class="section-subtitle">${homeShort} — recent results (opponent-weighted)</div>
+        <div class="recent-matches">${renderRecent(homeRecent)}</div>
+        <div class="section-subtitle">${awayShort} — recent results (opponent-weighted)</div>
+        <div class="recent-matches">${renderRecent(awayRecent)}</div>`;
+    })()}
 
     <div style="margin-top:16px;padding:12px 16px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px">
       <div style="font-size:12px;color:var(--text-muted);font-weight:500;line-height:1.5">Curious how these predictions are calculated? The full methodology — SoS scoring, weighting formula, and probability model — is explained on its own page.</div>
@@ -2387,14 +2492,17 @@
 
       // ── League dropdown ──
 
+      // Flag that lets selectLeague interrupt the background preload so
+      // the user-requested league loads immediately without contention.
+      let preloadPaused = false;
+
       function renderLeagueDropdown() {
         const panel = document.getElementById("leagueDropdownPanel");
         panel.innerHTML = LEAGUES.map((l) => {
           const state = leagueReadyState[l.code];
           const isActive = l.code === currentLeague;
-          // Greyed out / unclickable while this specific league is loading OR
-          // while the initial sequential preload hasn't reached it yet.
-          const disabled = state === "loading" || state === "queued";
+          // Only disable while actively fetching. Idle/error leagues are clickable.
+          const disabled = state === "loading";
           const statusCls =
             state === "ready"
               ? "ready"
@@ -2434,13 +2542,8 @@
       });
 
       async function selectLeague(code) {
-        // Leagues that are still queued/loading are not clickable (the dropdown
-        // already omits the onclick handler for them), but guard here too.
-        if (
-          leagueReadyState[code] === "loading" ||
-          leagueReadyState[code] === "queued"
-        )
-          return;
+        // Only block clicks while actively loading.
+        if (leagueReadyState[code] === "loading") return;
 
         dropdownOpen = false;
         document.getElementById("leagueDropdownBtn").classList.remove("open");
@@ -2451,11 +2554,16 @@
         document.getElementById("activeLeagueFlag").textContent = l.flag;
         document.getElementById("activeLeagueText").textContent = l.name;
 
-        // Use this league's already-detected "current" gameweek if we have it,
-        // otherwise null triggers auto-detection inside loadLeague.
+        // Pause background preload so the user-requested league gets
+        // exclusive access to the rate limiter queue right away.
+        preloadPaused = true;
+
         const gwKey = `${code}_${currentSeason}`;
         const targetGW = autoGwCache[gwKey] || null;
         await loadLeague(code, targetGW);
+
+        // Resume background preload for any remaining uncached leagues.
+        preloadPaused = false;
       }
 
       // ── Main load flow ──
@@ -2780,16 +2888,33 @@
         .addEventListener("change", async (e) => {
           currentSeason = e.target.value;
           currentGW = null;
-          // A season change invalidates all caches — different season's fixtures,
-          // recent form, and gameweek numbering are entirely different data.
+
+          // Clear ALL in-memory caches — different season = entirely different data
           Object.keys(recentCache).forEach((k) => delete recentCache[k]);
-          Object.keys(predictionCache).forEach(
-            (k) => delete predictionCache[k],
-          );
+          Object.keys(predictionCache).forEach((k) => delete predictionCache[k]);
           Object.keys(autoGwCache).forEach((k) => delete autoGwCache[k]);
-          Object.keys(leagueReadyState).forEach(
-            (k) => (leagueReadyState[k] = "idle"),
-          );
+          Object.keys(leagueReadyState).forEach((k) => (leagueReadyState[k] = "idle"));
+
+          // Clear sessionStorage too — without this, restoreCacheFromSession()
+          // would immediately repopulate predictionCache with the old season's
+          // data and startSequentialPreload would skip all API calls, showing
+          // stale fixtures regardless of which season was selected.
+          try {
+            sessionStorage.removeItem(SESSION_CACHE_KEY);
+            sessionStorage.removeItem(SESSION_GW_KEY);
+            sessionStorage.removeItem(SESSION_STATE_KEY);
+          } catch (_) {}
+
+          // Reset the preload flag so startSequentialPreload() doesn't bail
+          // immediately due to the previous run's guard still being true.
+          preloadRunning = false;
+          preloadPaused  = false;
+
+          // Sync the mobile drawer select to match
+          const dss = document.getElementById("drawerSeasonSelect");
+          if (dss) dss.value = currentSeason;
+
+          renderLeagueDropdown();
           startSequentialPreload();
         });
 
@@ -2877,14 +3002,13 @@
         const hadCache = restoreCacheFromSession();
 
         // Mark any league that already has a cache entry as ready
-        // so it lights up immediately and is clickable.
         LEAGUES.forEach(l => {
           const gwKey = `${l.code}_${currentSeason}`;
           const gw = autoGwCache[gwKey];
           if (gw && predictionCache[cacheKey(l.code, currentSeason, gw)]) {
             leagueReadyState[l.code] = 'ready';
           } else if (leagueReadyState[l.code] !== 'ready') {
-            leagueReadyState[l.code] = 'queued';
+            leagueReadyState[l.code] = 'idle';
           }
         });
         renderLeagueDropdown();
@@ -2902,6 +3026,13 @@
           if (cached) applyCachedResult(cached, firstCached.code, gw);
         }
 
+        // Count how many leagues still need loading for progress display
+        const toLoad = LEAGUES.filter(l => {
+          const gw = autoGwCache[`${l.code}_${currentSeason}`];
+          return !(gw && predictionCache[cacheKey(l.code, currentSeason, gw)]);
+        });
+        let loaded = 0;
+
         // ── Load any league that isn't cached yet ──
         for (let i = 0; i < LEAGUES.length; i++) {
           const league = LEAGUES[i].code;
@@ -2911,9 +3042,41 @@
           // Skip if already cached
           if (gw && predictionCache[cacheKey(league, currentSeason, gw)]) continue;
 
-          const isVisible = !firstCached && i === 0;
+          // Wait if user clicked a league manually
+          while (preloadPaused) {
+            await new Promise(r => setTimeout(r, 300));
+          }
 
-          if (isVisible) {
+          // Skip again after pause — user may have just loaded this league
+          const gwAfterPause = autoGwCache[`${league}_${currentSeason}`];
+          if (gwAfterPause && predictionCache[cacheKey(league, currentSeason, gwAfterPause)]) continue;
+
+          const isFirst = !firstCached && i === 0;
+          loaded++;
+
+          // Show a subtle status line so the user can see progress across leagues
+          const leagueName = LEAGUE_MAP[league]?.name || league;
+          if (!isFirst) {
+            const pageSub = document.getElementById('pageSub');
+            if (pageSub && league !== currentLeague) {
+              const remainingLeagues = toLoad.length - loaded + 1;
+              pageSub.textContent = document.getElementById('pageSub').dataset.base
+                ? document.getElementById('pageSub').dataset.base
+                : pageSub.textContent;
+              // Show a non-intrusive background loader note in a dedicated element
+            }
+          }
+
+          // Update overall progress bar to show cross-league progress
+          if (!isFirst) {
+            showOverallProgress(
+              Math.round((loaded / toLoad.length) * 100),
+              `Loading ${leagueName}…`,
+              `${loaded} of ${toLoad.length} leagues loaded`
+            );
+          }
+
+          if (isFirst) {
             currentLeague = league;
             const l = LEAGUE_MAP[league];
             document.getElementById('activeLeagueFlag').textContent = l.flag;
@@ -2922,9 +3085,18 @@
           } else {
             await loadLeague(league, null, { silent: true });
           }
+
+          // Update dropdown dots after each league completes
+          renderLeagueDropdown();
         }
 
         preloadRunning = false;
+
+        // Hide the cross-league progress bar once all leagues are done
+        hideOverallProgress();
+
+        // Refresh the dropdown one final time to show all green dots
+        renderLeagueDropdown();
       }
 
       // ── Bet slip helpers ──
@@ -2998,7 +3170,7 @@
         el.innerHTML = LEAGUES.map(l => {
           const state = leagueReadyState[l.code];
           const isActive = l.code === currentLeague;
-          const disabled = state === 'loading' || state === 'queued';
+          const disabled = state === 'loading'; // queued removed — idle leagues clickable
           const dotCls = state === 'ready' ? 'ready' : state === 'loading' ? 'loading' : '';
           return `
           <div class="drawer-league-item ${isActive ? 'active' : ''} ${disabled ? 'disabled' : ''}"
@@ -3020,8 +3192,13 @@
         const dss = document.getElementById('drawerSeasonSelect');
         if (dss) {
           dss.addEventListener('change', e => {
-            document.getElementById('seasonSelect').value = e.target.value;
-            document.getElementById('seasonSelect').dispatchEvent(new Event('change'));
+            const sel = document.getElementById('seasonSelect');
+            if (sel) {
+              sel.value = e.target.value;
+              // Dispatch triggers the main season change handler above,
+              // which handles all cache clearing and preload restart.
+              sel.dispatchEvent(new Event('change'));
+            }
             closeBottomDrawer();
           });
         }
