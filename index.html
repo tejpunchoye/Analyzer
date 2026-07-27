@@ -1346,6 +1346,73 @@
       .slip-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
       .slip-btn.added { border-color: var(--win); color: var(--win); background: var(--win-dim); }
       /* Toast for bet-slip feedback */
+      /* ── League picker overlay ── */
+      #leaguePicker {
+        position: fixed; inset: 0; z-index: 9000;
+        background: rgba(0,0,0,0.75);
+        display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+        transition: opacity 0.3s ease;
+      }
+      #leaguePicker.hidden { opacity: 0; pointer-events: none; }
+      .picker-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 16px; padding: 24px 24px 20px;
+        width: 100%; max-width: 540px;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+        position: relative;
+      }
+      .picker-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
+      .picker-header-left {}
+      .picker-close {
+        width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+        background: var(--surface2); border: 1px solid var(--border);
+        color: var(--text-dim); font-size: 14px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all .14s; margin-left: 12px; margin-top: 2px;
+        font-family: var(--sans);
+      }
+      .picker-close:hover { color: var(--text); border-color: var(--border-strong); }
+      .picker-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
+      .picker-title { font-size: 18px; font-weight: 800; color: var(--text); }
+      .picker-sub { font-size: 12px; color: var(--text-muted); margin-top: 5px; margin-bottom: 16px; line-height: 1.5; font-weight: 500; }
+      .picker-actions-top { display: flex; gap: 8px; margin-bottom: 12px; }
+      .picker-link { font-size: 11.5px; font-weight: 600; color: var(--text-dim); cursor: pointer; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); background: none; font-family: var(--sans); transition: all .14s; }
+      .picker-link:hover { color: var(--text); border-color: var(--border-strong); }
+      .picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 18px; }
+      .picker-league {
+        display: flex; align-items: center; gap: 8px;
+        padding: 9px 11px; border-radius: 9px;
+        border: 1px solid var(--border); background: var(--surface2);
+        cursor: pointer; transition: all .14s; user-select: none;
+      }
+      .picker-league:hover { border-color: var(--border-strong); background: var(--surface3); }
+      .picker-league.selected { border-color: var(--accent); background: var(--accent-dim); }
+      .picker-league.current { border-color: var(--win); background: var(--win-dim); }
+      .picker-league-flag { font-size: 15px; flex-shrink: 0; }
+      .picker-league-name { font-size: 11.5px; font-weight: 600; color: var(--text-muted); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .picker-league.selected .picker-league-name { color: var(--accent); }
+      .picker-league.current .picker-league-name { color: var(--win); }
+      .picker-status { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: var(--border-strong); }
+      .picker-status.ready { background: var(--win); box-shadow: 0 0 6px var(--win); }
+      .picker-status.loading { background: var(--draw); animation: pulseDot 1s infinite; }
+      .picker-status.current { background: var(--win); box-shadow: 0 0 8px var(--win); }
+      .picker-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      .picker-count { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+      .picker-count span { color: var(--accent); font-weight: 800; font-family: var(--mono); }
+      .picker-btn {
+        padding: 10px 20px; border-radius: 9px;
+        background: var(--accent); color: #fff;
+        font-size: 13px; font-weight: 700;
+        border: none; cursor: pointer; font-family: var(--sans);
+        transition: all .15s; opacity: 0.5; pointer-events: none;
+      }
+      .picker-btn.active { opacity: 1; pointer-events: all; }
+      .picker-btn.active:hover { background: #6c64f0; }
+      @media (max-width: 480px) {
+        .picker-grid { grid-template-columns: 1fr; }
+        .picker-card { padding: 18px 16px 16px; }
+      }
       .slip-toast {
         position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(10px);
         background: var(--surface2); border: 1px solid var(--border-strong);
@@ -1357,6 +1424,29 @@
     </style>
   </head>
   <body>
+    <!-- ── League picker / switcher ── -->
+    <div id="leaguePicker">
+      <div class="picker-card">
+        <div class="picker-header">
+          <div class="picker-header-left">
+            <div class="picker-eyebrow">Fixture AI</div>
+            <div class="picker-title">Choose your leagues</div>
+          </div>
+          <button class="picker-close" onclick="dismissPicker()" title="Close">✕</button>
+        </div>
+        <div class="picker-sub">Select which leagues to load. Only those will use API calls.</div>
+        <div class="picker-actions-top" id="pickerActionsTop">
+          <button class="picker-link" onclick="pickerSelectAll()">Select all</button>
+          <button class="picker-link" onclick="pickerClearAll()">Clear all</button>
+        </div>
+        <div class="picker-grid" id="pickerGrid"></div>
+        <div class="picker-footer">
+          <div class="picker-count" id="pickerCountWrap"><span id="pickerCount">0</span> selected</div>
+          <button class="picker-btn" id="pickerConfirmBtn" onclick="confirmLeaguePicker()">Select at least one</button>
+        </div>
+      </div>
+    </div>
+
     <div class="shell">
       <!-- ── Sidebar ── -->
       <aside class="sidebar">
@@ -1382,17 +1472,15 @@
           <button
             class="league-dropdown-btn"
             id="leagueDropdownBtn"
-            onclick="toggleLeagueDropdown()"
+            onclick="openLeaguePicker()"
+            title="Click to switch or add leagues"
           >
             <span class="league-dropdown-flag" id="activeLeagueFlag">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
-            <span class="league-dropdown-text" id="activeLeagueText"
-              >Premier League</span
-            >
+            <span class="league-dropdown-text" id="activeLeagueText">Premier League</span>
             <svg class="league-dropdown-chev" viewBox="0 0 10 6" fill="none">
               <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" />
             </svg>
           </button>
-          <div class="league-dropdown-panel" id="leagueDropdownPanel"></div>
         </div>
 
         <div class="sidebar-sep"></div>
@@ -1593,7 +1681,7 @@
       }
 
       // ── State ──
-      let currentLeague = "PL";
+      let currentLeague = null; // set when first league loads
       let currentSeason = "2026"; // 2026/27 is the current season
       let currentGW = null;
       let apiCallCount = 0; // total API calls made this session
@@ -1631,18 +1719,18 @@
       let preloadIndex = -1; // index into LEAGUES currently being preloaded
 
       const LEAGUES = [
-        // { code: "PL",  flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Premier League" },
-        // { code: "PD",  flag: "🇪🇸", name: "La Liga" },
-        // { code: "BL1", flag: "🇩🇪", name: "Bundesliga" },
-        // { code: "SA",  flag: "🇮🇹", name: "Serie A" },
-        // { code: "FL1", flag: "🇫🇷", name: "Ligue 1" },
-        // { code: "ELC", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Championship" },
-        // { code: "PPL", flag: "🇵🇹", name: "Primeira Liga" },
-        // { code: "DED", flag: "🇳🇱", name: "Eredivisie" },
+        { code: "PL",  flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Premier League" },
+        { code: "PD",  flag: "🇪🇸", name: "La Liga" },
+        { code: "BL1", flag: "🇩🇪", name: "Bundesliga" },
+        { code: "SA",  flag: "🇮🇹", name: "Serie A" },
+        { code: "FL1", flag: "🇫🇷", name: "Ligue 1" },
+        { code: "ELC", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", name: "Championship" },
+        { code: "PPL", flag: "🇵🇹", name: "Primeira Liga" },
+        { code: "DED", flag: "🇳🇱", name: "Eredivisie" },
         { code: "BSA", flag: "🇧🇷", name: "Série A (Brazil)" },
-        // { code: "WC",  flag: "🌍",  name: "FIFA World Cup" },
-        // { code: "CL",  flag: "🏆",  name: "Champions League" },
-        // { code: "EC",  flag: "🇪🇺", name: "Euro Championship" },
+        { code: "WC",  flag: "🌍",  name: "FIFA World Cup" },
+        { code: "CL",  flag: "🏆",  name: "Champions League" },
+        { code: "EC",  flag: "🇪🇺", name: "Euro Championship" },
       ];
       const LEAGUE_MAP = Object.fromEntries(LEAGUES.map((l) => [l.code, l]));
 
@@ -2497,57 +2585,15 @@
       let preloadPaused = false;
 
       function renderLeagueDropdown() {
-        const panel = document.getElementById("leagueDropdownPanel");
-        panel.innerHTML = LEAGUES.map((l) => {
-          const state = leagueReadyState[l.code];
-          const isActive = l.code === currentLeague;
-          // Only disable while actively fetching. Idle/error leagues are clickable.
-          const disabled = state === "loading";
-          const statusCls =
-            state === "ready"
-              ? "ready"
-              : state === "loading"
-                ? "loading"
-                : state === "error"
-                  ? ""
-                  : "";
-          return `
-    <div class="league-item ${isActive ? "active" : ""} ${disabled ? "disabled" : ""}" onclick="${disabled ? "" : `selectLeague('${l.code}')`}">
-      <span class="league-item-flag">${l.flag}</span>
-      <span class="league-item-name">${l.name}</span>
-      <span class="league-item-status ${statusCls}"></span>
-    </div>`;
-        }).join("");
+        // The old dropdown panel is replaced by the picker overlay.
+        // This function is kept as a no-op so existing call sites don't crash.
       }
 
-      function toggleLeagueDropdown() {
-        dropdownOpen = !dropdownOpen;
-        document
-          .getElementById("leagueDropdownBtn")
-          .classList.toggle("open", dropdownOpen);
-        document
-          .getElementById("leagueDropdownPanel")
-          .classList.toggle("open", dropdownOpen);
-        if (dropdownOpen) renderLeagueDropdown();
-      }
 
-      document.addEventListener("click", (e) => {
-        if (!e.target.closest(".league-dropdown-wrap") && dropdownOpen) {
-          dropdownOpen = false;
-          document.getElementById("leagueDropdownBtn").classList.remove("open");
-          document
-            .getElementById("leagueDropdownPanel")
-            .classList.remove("open");
-        }
-      });
 
       async function selectLeague(code) {
         // Only block clicks while actively loading.
         if (leagueReadyState[code] === "loading") return;
-
-        dropdownOpen = false;
-        document.getElementById("leagueDropdownBtn").classList.remove("open");
-        document.getElementById("leagueDropdownPanel").classList.remove("open");
 
         currentLeague = code;
         const l = LEAGUE_MAP[code];
@@ -3026,18 +3072,23 @@
           if (cached) applyCachedResult(cached, firstCached.code, gw);
         }
 
-        // Count how many leagues still need loading for progress display
+        // Count how many SELECTED leagues still need loading for progress display
         const toLoad = LEAGUES.filter(l => {
+          if (!selectedLeagues.has(l.code)) return false;
           const gw = autoGwCache[`${l.code}_${currentSeason}`];
           return !(gw && predictionCache[cacheKey(l.code, currentSeason, gw)]);
         });
         let loaded = 0;
+        let firstSelectedLoaded = false;
 
         // ── Load any league that isn't cached yet ──
         for (let i = 0; i < LEAGUES.length; i++) {
           const league = LEAGUES[i].code;
           const gwKey  = `${league}_${currentSeason}`;
           const gw     = autoGwCache[gwKey];
+
+          // Skip if not in the user's selected leagues
+          if (!selectedLeagues.has(league)) continue;
 
           // Skip if already cached
           if (gw && predictionCache[cacheKey(league, currentSeason, gw)]) continue;
@@ -3047,11 +3098,20 @@
             await new Promise(r => setTimeout(r, 300));
           }
 
-          // Skip again after pause — user may have just loaded this league
+          // Skip again after pause
           const gwAfterPause = autoGwCache[`${league}_${currentSeason}`];
           if (gwAfterPause && predictionCache[cacheKey(league, currentSeason, gwAfterPause)]) continue;
 
-          const isFirst = !firstCached && i === 0;
+          // First selected league that needs loading drives the visible UI —
+          // regardless of its position in the LEAGUES array.
+          const isFirst = !firstCached && !firstSelectedLoaded;
+          if (isFirst) {
+            firstSelectedLoaded = true;
+            currentLeague = league;
+            const lMeta = LEAGUE_MAP[league];
+            document.getElementById('activeLeagueFlag').textContent = lMeta.flag;
+            document.getElementById('activeLeagueText').textContent = lMeta.name;
+          }
           loaded++;
 
           // Show a subtle status line so the user can see progress across leagues
@@ -3204,9 +3264,187 @@
         }
       });
 
+      // ── League picker / switcher ─────────────────────────────────────────
+      const PICKER_KEY = 'fixture_ai_selected_leagues';
+      let selectedLeagues  = new Set();
+      let pickerIsFirstVisit = false;
+
+      function loadSelectedLeagues() {
+        try {
+          const saved = localStorage.getItem(PICKER_KEY);
+          if (saved) {
+            const arr = JSON.parse(saved);
+            if (Array.isArray(arr) && arr.length > 0) return new Set(arr);
+          }
+        } catch (_) {}
+        return null;
+      }
+
+      function saveSelectedLeagues() {
+        localStorage.setItem(PICKER_KEY, JSON.stringify([...selectedLeagues]));
+      }
+
+      function renderPickerGrid() {
+        const grid = document.getElementById('pickerGrid');
+        if (!grid) return;
+        grid.innerHTML = LEAGUES.map(l => {
+          const isCurrent  = currentLeague !== null && l.code === currentLeague;
+          const isSelected = selectedLeagues.has(l.code);
+          const state      = leagueReadyState[l.code];
+          const isReady    = state === 'ready';
+          const isLoading  = state === 'loading';
+          let cls = '';
+          let statusCls = '';
+          if (isCurrent)       { cls = 'current';  statusCls = 'current'; }
+          else if (isSelected) { cls = 'selected'; statusCls = isReady ? 'ready' : isLoading ? 'loading' : ''; }
+          else if (isReady)    { statusCls = 'ready'; }
+          else if (isLoading)  { statusCls = 'loading'; }
+          const label = isCurrent  ? '● Current'
+            : isLoading            ? 'Loading…'
+            : (!pickerIsFirstVisit && isReady) ? '→ Switch'
+            : isReady              ? 'Loaded'
+            : isSelected           ? (pickerIsFirstVisit ? 'Selected' : 'Queued')
+            : 'Select';
+          const clickStyle = (!pickerIsFirstVisit && (isReady || isCurrent)) ? 'font-weight:700;color:var(--text-muted)' : 'color:var(--text-dim)';
+          return `<div class="picker-league ${cls}" onclick="pickerLeagueClick('${l.code}')">
+            <span class="picker-league-flag">${l.flag}</span>
+            <span class="picker-league-name">${l.name}</span>
+            <span style="font-size:9.5px;font-weight:600;white-space:nowrap;flex-shrink:0;${clickStyle}">${label}</span>
+            <span class="picker-status ${statusCls}"></span>
+          </div>`;
+        }).join('');
+        updatePickerCount();
+      }
+
+      function pickerLeagueClick(code) {
+        const state = leagueReadyState[code];
+        const isReady   = state === 'ready';
+        const isCurrent = code === currentLeague;
+
+        if (!pickerIsFirstVisit && (isReady || isCurrent)) {
+          // Already loaded — switch to it immediately and close the picker
+          dismissPicker();
+          if (!isCurrent) selectLeague(code);
+          return;
+        }
+
+        // Not yet loaded — toggle for batch loading via the confirm button
+        if (selectedLeagues.has(code)) selectedLeagues.delete(code);
+        else selectedLeagues.add(code);
+        renderPickerGrid();
+      }
+
+      function _switchToLeague(code) {
+        const gwKey  = `${code}_${currentSeason}`;
+        const gw     = autoGwCache[gwKey];
+        const cached = gw && predictionCache[cacheKey(code, currentSeason, gw)];
+        if (cached) {
+          selectLeague(code);
+        } else {
+          currentLeague = code;
+          const l = LEAGUE_MAP[code];
+          if (l) {
+            document.getElementById('activeLeagueFlag').textContent = l.flag;
+            document.getElementById('activeLeagueText').textContent = l.name;
+          }
+          loadLeague(code, null, { silent: false });
+        }
+      }
+
+      function pickerSelectAll() {
+        LEAGUES.forEach(l => selectedLeagues.add(l.code));
+        renderPickerGrid();
+      }
+
+      function pickerClearAll() {
+        selectedLeagues.clear();
+        renderPickerGrid();
+      }
+
+      function updatePickerCount() {
+        const el  = document.getElementById('pickerCount');
+        const btn = document.getElementById('pickerConfirmBtn');
+        if (el) el.textContent = selectedLeagues.size;
+        if (btn) {
+          btn.classList.toggle('active', selectedLeagues.size > 0);
+          const n = selectedLeagues.size;
+          btn.textContent = n > 0 ? `Load ${n} league${n !== 1 ? 's' : ''} →` : 'Select at least one';
+        }
+      }
+
+      function confirmLeaguePicker() {
+        if (selectedLeagues.size === 0) return;
+        saveSelectedLeagues();
+        dismissPicker();
+        if (pickerIsFirstVisit) {
+          pickerIsFirstVisit = false;
+          Object.keys(predictionCache).forEach(k => delete predictionCache[k]);
+          Object.keys(autoGwCache).forEach(k => delete autoGwCache[k]);
+          Object.keys(leagueReadyState).forEach(k => leagueReadyState[k] = 'idle');
+          try {
+            sessionStorage.removeItem(SESSION_CACHE_KEY);
+            sessionStorage.removeItem(SESSION_GW_KEY);
+            sessionStorage.removeItem(SESSION_STATE_KEY);
+          } catch (_) {}
+          preloadRunning = false;
+          preloadPaused  = false;
+          renderLeagueDropdown();
+          startSequentialPreload();
+        } else {
+          // Load any newly selected leagues that aren't cached yet
+          if (!preloadRunning) startSequentialPreload();
+        }
+      }
+
+      function dismissPicker() {
+        const el = document.getElementById('leaguePicker');
+        if (!el) return;
+        el.classList.add('hidden');
+        setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 350);
+      }
+
+      function openLeaguePicker() {
+        pickerIsFirstVisit = false;
+        let el = document.getElementById('leaguePicker');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'leaguePicker';
+          el.innerHTML = `<div class="picker-card">
+            <div class="picker-header">
+              <div class="picker-header-left">
+                <div class="picker-eyebrow">Fixture AI</div>
+                <div class="picker-title">Switch or add leagues</div>
+              </div>
+              <button class="picker-close" onclick="dismissPicker()" title="Close">✕</button>
+            </div>
+            <div class="picker-sub">Tap a league to switch. Unloaded leagues fetch automatically.</div>
+            <div class="picker-grid" id="pickerGrid"></div>
+            <div class="picker-footer">
+              <div class="picker-count"><span id="pickerCount">${selectedLeagues.size}</span> selected</div>
+              <button class="picker-btn active" id="pickerConfirmBtn" onclick="confirmLeaguePicker()">Done</button>
+            </div>
+          </div>`;
+          document.body.appendChild(el);
+        } else {
+          el.classList.remove('hidden');
+        }
+        renderPickerGrid();
+      }
+
       // ── Init ──
-      renderLeagueDropdown();
-      startSequentialPreload();
+      // Always show the league picker before making any API calls.
+      // If the user has a saved selection it pre-fills the checkboxes.
+      // startSequentialPreload() is ONLY called from confirmLeaguePicker().
+      (function initApp() {
+        const saved = loadSelectedLeagues();
+        pickerIsFirstVisit = true;
+        // Pre-fill from saved selection; on first ever visit start empty so user
+        // explicitly picks their leagues — no PL default forced on them.
+        selectedLeagues = saved || new Set();
+        renderLeagueDropdown();
+        renderPickerGrid();
+        // Picker is already visible in the HTML — no need to show it
+      })();
     </script>
   <div class="slip-toast" id="slipToast"></div>
   </body>
