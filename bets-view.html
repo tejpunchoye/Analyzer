@@ -265,15 +265,37 @@ button{cursor:pointer;border:none;background:none;font-family:var(--sans);color:
 @media(max-width:800px){
   .shell{grid-template-columns:1fr}
   .sidebar{display:none}
-  .main{padding:16px 14px;padding-bottom:200px}
+  .main{padding:14px 12px;padding-bottom:200px}
   .bet-ghost-trigger{display:block}
-  .bet-meta{gap:8px;flex-wrap:wrap}
-  .page-header{flex-direction:column;gap:10px}
+  .page-header{flex-direction:column;gap:8px}
+  .page-title{font-size:18px}
+
+  /* Bet card mobile */
+  .bet-card{border-radius:10px}
+  .bet-body{padding:13px 14px}
+  .bet-league-row{margin-bottom:10px}
+  .bet-team-name{font-size:13.5px}
+
+  /* Meta row wraps on mobile */
+  .bet-meta{flex-wrap:wrap;gap:0}
+  .bm-item{flex:0 0 50%;padding:8px 0}
+  .bm-item+.bm-item{border-left:none;padding-left:0;margin-left:0;border-top:1px solid var(--border)}
+  .bm-val{font-size:13px}
+
+  /* Bottom drawer */
+  .bottom-drawer{border-radius:16px 16px 0 0}
+  .drawer-inner{padding:4px 16px 28px}
+  .summary-row{padding:4px 0}
 }
 @media(max-width:480px){
-  .bm-val{font-size:11.5px}
-  .bet-meta{gap:6px}
-  .bm-item+.bm-item{padding-left:8px;margin-left:8px}
+  .main{padding:10px 10px;padding-bottom:200px}
+  .bet-body{padding:11px 12px}
+  .bet-team-name{font-size:13px}
+  .status-pill{font-size:11px;padding:3px 9px}
+  .bm-item{flex:0 0 50%}
+  .bm-label{font-size:9px}
+  .bm-val{font-size:12px}
+  .odds-edit{font-size:12px}
 }
 </style>
 </head>
