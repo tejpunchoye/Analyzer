@@ -1562,19 +1562,14 @@
         </div>
 
         <div class="sidebar-sep"></div>
-        <div class="nav-section"><div class="nav-label">League</div></div>
-        <div class="league-dropdown-wrap">
-          <button
-            class="league-dropdown-btn"
-            id="leagueDropdownBtn"
-            onclick="openLeaguePicker()"
-            title="Click to switch or add leagues"
-          >
-            <span class="league-dropdown-flag" id="activeLeagueFlag">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
-            <span class="league-dropdown-text" id="activeLeagueText">Premier League</span>
-            <svg class="league-dropdown-chev" viewBox="0 0 10 6" fill="none">
-              <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" />
-            </svg>
+        <div class="nav-section"><div class="nav-label">Current league</div></div>
+        <div style="padding:0 18px 6px;display:flex;align-items:center;gap:9px">
+          <span id="activeLeagueFlag" style="font-size:17px">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
+          <span id="activeLeagueText" style="font-size:13.5px;font-weight:700;color:var(--text)">—</span>
+        </div>
+        <div style="padding:0 18px 14px">
+          <button class="bet-nav-btn" style="width:100%;justify-content:center;gap:8px;border:1px solid var(--accent-glow);color:var(--accent);background:var(--accent-dim);margin:0" onclick="openLeaguePicker()">
+            <span>⚡</span> Switch / Add League
           </button>
         </div>
 
@@ -1701,7 +1696,17 @@
           <option value="2026" selected>2026/27</option>
         </select>
         <div class="drawer-section-label">League</div>
-        <div class="drawer-league-list" id="drawerLeagueList"></div>
+        <button onclick="openLeaguePicker(true);" style="
+          width:100%;padding:12px 14px;border-radius:10px;
+          background:var(--accent-dim);border:1px solid var(--accent-glow);
+          color:var(--accent);font-size:13px;font-weight:700;
+          cursor:pointer;font-family:var(--sans);
+          display:flex;align-items:center;justify-content:center;gap:8px;
+          margin-bottom:4px;
+        ">⚡ Leagues</button>
+        <div style="padding:6px 0 2px;font-size:11px;color:var(--text-dim);text-align:center;font-weight:500">
+          Currently: <span id="drawerCurrentLeague" style="color:var(--text-muted);font-weight:700">—</span>
+        </div>
         <div class="drawer-section-label">Navigate</div>
         <div class="drawer-nav-links">
           <a href="index.html" class="drawer-nav-link accent">
@@ -3304,42 +3309,108 @@
       }
 
       // ── Mobile bottom drawer ──────────────────────────────────────────
+      // Tracks which layer is open for back-button handling:
+      // null | 'drawer' | 'picker-from-drawer' | 'picker-standalone'
+      let _navLayer = null;
+
       function openBottomDrawer() {
-        renderDrawerLeagueList();
-        // Sync season select
-        document.getElementById('drawerSeasonSelect').value = currentSeason;
+        const lMeta = currentLeague ? LEAGUE_MAP[currentLeague] : null;
+        const el = document.getElementById('drawerCurrentLeague');
+        if (el) el.textContent = lMeta ? `${lMeta.flag} ${lMeta.name}` : '—';
+        const dss = document.getElementById('drawerSeasonSelect');
+        if (dss) dss.value = currentSeason;
         document.getElementById('bottomDrawer').classList.add('open');
         document.getElementById('bdOverlay').classList.add('open');
         document.body.style.overflow = 'hidden';
+        // Push history state so back button closes the drawer
+        history.pushState({ nav: 'drawer' }, '');
+        _navLayer = 'drawer';
+        _initDrawerSwipe();
       }
 
       function closeBottomDrawer() {
         document.getElementById('bottomDrawer').classList.remove('open');
         document.getElementById('bdOverlay').classList.remove('open');
         document.body.style.overflow = '';
+        _navLayer = null;
       }
 
-      function renderDrawerLeagueList() {
-        const el = document.getElementById('drawerLeagueList');
-        if (!el) return;
-        el.innerHTML = LEAGUES.map(l => {
-          const state = leagueReadyState[l.code];
-          const isActive = l.code === currentLeague;
-          const disabled = state === 'loading'; // queued removed — idle leagues clickable
-          const dotCls = state === 'ready' ? 'ready' : state === 'loading' ? 'loading' : '';
-          return `
-          <div class="drawer-league-item ${isActive ? 'active' : ''} ${disabled ? 'disabled' : ''}"
-            onclick="${disabled ? '' : `drawerSelectLeague('${l.code}')`}">
-            <span class="drawer-league-flag">${l.flag}</span>
-            <span class="drawer-league-name">${l.name}</span>
-            <span class="drawer-league-dot ${dotCls}"></span>
-          </div>`;
-        }).join('');
-      }
+      function renderDrawerLeagueList() {}
 
       async function drawerSelectLeague(code) {
         closeBottomDrawer();
         await selectLeague(code);
+      }
+
+      // ── Swipe-to-close the bottom drawer ─────────────────────────────
+      function _initDrawerSwipe() {
+        const drawer = document.getElementById('bottomDrawer');
+        let startY = 0, curY = 0, dragging = false;
+
+        function onStart(e) {
+          startY = (e.touches ? e.touches[0].clientY : e.clientY);
+          curY = startY;
+          dragging = true;
+          drawer.style.transition = 'none';
+        }
+        function onMove(e) {
+          if (!dragging) return;
+          curY = (e.touches ? e.touches[0].clientY : e.clientY);
+          const delta = Math.max(0, curY - startY);
+          drawer.style.transform = `translateY(${delta}px)`;
+        }
+        function onEnd() {
+          if (!dragging) return;
+          dragging = false;
+          drawer.style.transition = '';
+          const delta = curY - startY;
+          if (delta > 100) {
+            // Swiped down enough — close
+            drawer.style.transform = '';
+            if (_navLayer === 'drawer') history.back();
+            else closeBottomDrawer();
+          } else {
+            // Snap back open
+            drawer.style.transform = 'translateY(0)';
+          }
+        }
+
+        // Remove any previous listeners by cloning the handle
+        const handle = drawer.querySelector('.drawer-handle-wrap');
+        if (handle) {
+          const fresh = handle.cloneNode(true);
+          fresh.addEventListener('touchstart', onStart, { passive: true });
+          fresh.addEventListener('touchmove',  onMove,  { passive: true });
+          fresh.addEventListener('touchend',   onEnd);
+          fresh.onclick = () => {
+            if (_navLayer === 'drawer') history.back();
+            else closeBottomDrawer();
+          };
+          handle.parentNode.replaceChild(fresh, handle);
+        }
+      }
+
+      // ── History (back button) handler ─────────────────────────────────
+      window.addEventListener('popstate', (e) => {
+        const nav = e.state?.nav;
+        if (_navLayer === 'picker-from-drawer') {
+          // Picker was opened from drawer — close picker, reopen drawer
+          _dismissPickerSilent();
+          _navLayer = null;
+          openBottomDrawer();
+        } else if (_navLayer === 'drawer') {
+          closeBottomDrawer();
+        } else if (_navLayer === 'picker-standalone') {
+          dismissPicker();
+          _navLayer = null;
+        }
+      });
+
+      function _dismissPickerSilent() {
+        const el = document.getElementById('leaguePicker');
+        if (!el) return;
+        el.classList.add('hidden');
+        setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 350);
       }
 
       // Sync drawer season select with the main one
@@ -3470,7 +3541,32 @@
       function confirmLeaguePicker() {
         if (selectedLeagues.size === 0) return;
         saveSelectedLeagues();
-        dismissPicker();
+
+        // Close picker and drawer cleanly, clearing any pushed history states
+        const layer = _navLayer;
+        _navLayer = null;
+
+        // Dismiss picker
+        const pickerEl = document.getElementById('leaguePicker');
+        if (pickerEl) {
+          pickerEl.classList.add('hidden');
+          setTimeout(() => { if (pickerEl.parentNode) pickerEl.parentNode.removeChild(pickerEl); }, 350);
+        }
+
+        // Also close the drawer if it was open underneath
+        document.getElementById('bottomDrawer')?.classList.remove('open');
+        document.getElementById('bdOverlay')?.classList.remove('open');
+        document.body.style.overflow = '';
+
+        // Clear the history states we pushed (picker + possibly drawer)
+        // so the back button goes to whatever was before, not back to the drawer
+        if (layer === 'picker-from-drawer') {
+          // We pushed 2 states: drawer + picker — go back 2
+          history.go(-2);
+        } else if (layer === 'picker-standalone' || layer === 'drawer') {
+          history.back();
+        }
+
         if (pickerIsFirstVisit) {
           pickerIsFirstVisit = false;
           Object.keys(predictionCache).forEach(k => delete predictionCache[k]);
@@ -3486,21 +3582,41 @@
           renderLeagueDropdown();
           startSequentialPreload();
         } else {
-          // Load any newly selected leagues that aren't cached yet
           if (!preloadRunning) startSequentialPreload();
         }
       }
 
       function dismissPicker() {
+        _navLayer = null;
         const el = document.getElementById('leaguePicker');
         if (!el) return;
         el.classList.add('hidden');
         setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 350);
       }
 
-      function openLeaguePicker() {
+      function openLeaguePicker(fromDrawer) {
         pickerIsFirstVisit = false;
+
+        // Close drawer first if open (don't pop history — we'll push picker state)
+        if (_navLayer === 'drawer') {
+          document.getElementById('bottomDrawer').classList.remove('open');
+          document.getElementById('bdOverlay').classList.remove('open');
+          document.body.style.overflow = '';
+          // Don't change _navLayer yet — set below
+        }
+
+        // Track where we came from
+        _navLayer = fromDrawer ? 'picker-from-drawer' : 'picker-standalone';
+
+        // Push history so back button works
+        history.pushState({ nav: _navLayer }, '');
+
         let el = document.getElementById('leaguePicker');
+        // The close button behaviour depends on where we came from
+        const closeAction = fromDrawer
+          ? 'history.back()'
+          : 'history.back()';
+
         if (!el) {
           el = document.createElement('div');
           el.id = 'leaguePicker';
@@ -3510,7 +3626,7 @@
                 <div class="picker-eyebrow">Fixture AI</div>
                 <div class="picker-title">Switch or add leagues</div>
               </div>
-              <button class="picker-close" onclick="dismissPicker()" title="Close">✕</button>
+              <button class="picker-close" onclick="${closeAction}" title="Close">✕</button>
             </div>
             <div class="picker-sub">Tap a league to switch. Unloaded leagues fetch automatically.</div>
             <div class="picker-grid" id="pickerGrid"></div>
@@ -3522,6 +3638,9 @@
           document.body.appendChild(el);
         } else {
           el.classList.remove('hidden');
+          // Update close button
+          const closeBtn = el.querySelector('.picker-close');
+          if (closeBtn) closeBtn.setAttribute('onclick', closeAction);
         }
         renderPickerGrid();
       }
