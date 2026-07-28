@@ -1564,8 +1564,8 @@
         <div class="sidebar-sep"></div>
         <div class="nav-section"><div class="nav-label">Current league</div></div>
         <div style="padding:0 18px 6px;display:flex;align-items:center;gap:9px">
-          <span id="activeLeagueFlag" style="font-size:17px">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
-          <span id="activeLeagueText" style="font-size:13.5px;font-weight:700;color:var(--text)">—</span>
+          <span id="activeLeagueFlag" style="font-size:17px">—</span>
+          <span id="activeLeagueText" style="font-size:13.5px;font-weight:700;color:var(--text-dim)">No league selected</span>
         </div>
         <div style="padding:0 18px 14px">
           <button class="bet-nav-btn" style="width:100%;justify-content:center;gap:8px;border:1px solid var(--accent-glow);color:var(--accent);background:var(--accent-dim);margin:0" onclick="openLeaguePicker()">
@@ -1593,8 +1593,8 @@
       <main class="main">
         <div class="page-header">
           <div>
-            <div class="page-title" id="pageTitle">Premier League</div>
-            <div class="page-sub" id="pageSub">Loading predictions…</div>
+            <div class="page-title" id="pageTitle">Fixture AI</div>
+            <div class="page-sub" id="pageSub">Select a league to begin</div>
           </div>
           <div class="header-controls">
             <div class="gw-selector">
@@ -1665,11 +1665,7 @@
             </div>
           </div>
           <div class="fixtures-grid" id="fixturesGrid">
-            <div class="loading-state">
-              <div class="loading-spinner"></div>
-              <div class="loading-title">Loading…</div>
-              <div class="loading-sub">Fetching match data</div>
-            </div>
+            <div class="empty-state">Select a league from the menu to load predictions.</div>
           </div>
         </div>
       </main>
