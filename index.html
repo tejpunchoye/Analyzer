@@ -3431,12 +3431,19 @@
       });
 
       // ── League picker / switcher ─────────────────────────────────────────
-      const PICKER_KEY = 'fixture_ai_selected_leagues';
+      const PICKER_KEY     = 'fixture_ai_selected_leagues';
+      const PICKER_VERSION = '2'; // bump to force-clear stale saved selections
       let selectedLeagues  = new Set();
       let pickerIsFirstVisit = false;
 
       function loadSelectedLeagues() {
         try {
+          // If stored version differs, wipe stale selection and start fresh
+          if (localStorage.getItem('fixture_ai_picker_v') !== PICKER_VERSION) {
+            localStorage.removeItem(PICKER_KEY);
+            localStorage.setItem('fixture_ai_picker_v', PICKER_VERSION);
+            return null;
+          }
           const saved = localStorage.getItem(PICKER_KEY);
           if (saved) {
             const arr = JSON.parse(saved);
@@ -3447,6 +3454,7 @@
       }
 
       function saveSelectedLeagues() {
+        localStorage.setItem('fixture_ai_picker_v', PICKER_VERSION);
         localStorage.setItem(PICKER_KEY, JSON.stringify([...selectedLeagues]));
       }
 
