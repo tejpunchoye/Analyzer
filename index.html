@@ -706,6 +706,28 @@
         font-weight: 600;
       }
 
+      /* ── Goal market badges on cards ── */
+      .market-row {
+        display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap;
+      }
+      .market-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 3px 9px; border-radius: 20px;
+        font-size: 10.5px; font-weight: 700; font-family: var(--mono);
+        border: 1px solid var(--border);
+      }
+      .market-badge-label {
+        font-size: 9px; font-weight: 800; letter-spacing: .05em;
+        text-transform: uppercase; color: var(--text-dim); font-family: var(--sans);
+        margin-right: 1px;
+      }
+      .market-badge.over  { background: var(--win-dim);  color: var(--win);  border-color: rgba(61,220,151,.3); }
+      .market-badge.under { background: var(--loss-dim); color: var(--loss); border-color: rgba(255,107,107,.3); }
+      .market-badge.btts-yes { background: var(--win-dim);  color: var(--win);  border-color: rgba(61,220,151,.3); }
+      .market-badge.btts-no  { background: var(--loss-dim); color: var(--loss); border-color: rgba(255,107,107,.3); }
+      .market-badge.neutral  { background: var(--surface2); color: var(--text-muted); }
+      .market-low-sample { font-size: 9.5px; color: var(--text-dim); font-style: italic; }
+
       /* ── Detail overlay ── */
       .detail-overlay {
         position: fixed;
@@ -1486,6 +1508,26 @@
       .picker-status.loading { background: var(--draw); animation: pulseDot 1s infinite; }
       .picker-status.current { background: var(--win); box-shadow: 0 0 8px var(--win); }
       .picker-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+      /* Gameweek row in picker */
+      .picker-gw-row {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; padding: 12px 14px; border-radius: 9px;
+        background: var(--surface2); border: 1px solid var(--border);
+        margin-bottom: 16px;
+      }
+      .picker-gw-label { display: flex; flex-direction: column; gap: 2px; }
+      .picker-gw-title { font-size: 12.5px; font-weight: 700; color: var(--text); }
+      .picker-gw-hint { font-size: 10.5px; color: var(--text-dim); font-weight: 400; }
+      .picker-gw-input {
+        width: 80px; padding: 8px 10px; border-radius: 8px; flex-shrink: 0;
+        background: var(--surface); border: 1px solid var(--border-strong);
+        color: var(--text); font-size: 14px; font-weight: 700;
+        font-family: var(--mono); text-align: center; outline: none;
+        transition: border-color .15s;
+      }
+      .picker-gw-input:focus { border-color: var(--accent); }
+      .picker-gw-input::placeholder { color: var(--text-dim); font-size: 12px; font-weight: 400; font-family: var(--sans); }
       .picker-count { font-size: 12px; color: var(--text-muted); font-weight: 500; }
       .picker-count span { color: var(--accent); font-weight: 800; font-family: var(--mono); }
       .picker-btn {
@@ -1519,28 +1561,6 @@
     </style>
   </head>
   <body>
-    <!-- ── League picker / switcher ── -->
-    <div id="leaguePicker">
-      <div class="picker-card">
-        <div class="picker-header">
-          <div class="picker-header-left">
-            <div class="picker-eyebrow">Fixture AI</div>
-            <div class="picker-title">Choose your leagues</div>
-          </div>
-          <button class="picker-close" onclick="dismissPicker()" title="Close">✕</button>
-        </div>
-        <div class="picker-sub">Select which leagues to load. Only those will use API calls.</div>
-        <div class="picker-actions-top" id="pickerActionsTop">
-          <button class="picker-link" onclick="pickerSelectAll()">Select all</button>
-          <button class="picker-link" onclick="pickerClearAll()">Clear all</button>
-        </div>
-        <div class="picker-grid" id="pickerGrid"></div>
-        <div class="picker-footer">
-          <div class="picker-count" id="pickerCountWrap"><span id="pickerCount">0</span> selected</div>
-          <button class="picker-btn" id="pickerConfirmBtn" onclick="confirmLeaguePicker()">Select at least one</button>
-        </div>
-      </div>
-    </div>
 
     <div class="shell">
       <!-- ── Sidebar ── -->
@@ -2043,6 +2063,79 @@
         };
       }
 
+      // ── Goal-market predictions (Over/Under 2.5 & BTTS) ─────────────────
+      // Uses a Poisson distribution model. λ (expected goals) per team is
+      // derived from season averages: attack strength vs opposition defence.
+      // League average goals per game is used to normalise.
+
+      function poissonProb(lambda, k) {
+        // P(X = k) for Poisson distribution with mean λ
+        if (lambda <= 0) return k === 0 ? 1 : 0;
+        let p = Math.exp(-lambda);
+        for (let i = 1; i <= k; i++) p *= lambda / i;
+        return p;
+      }
+
+      function computeGoalMarkets(homeInfo, awayInfo, totalTeams) {
+        // Need at least 3 games played for meaningful estimates
+        const minGames = 3;
+        if (!homeInfo || !awayInfo ||
+            homeInfo.played < minGames || awayInfo.played < minGames) {
+          return { over25: null, btts: null, xgHome: null, xgAway: null, lowSample: true };
+        }
+
+        // Attack/defence averages per game
+        const homeAttack  = homeInfo.gf / homeInfo.played;   // home goals scored/game
+        const homeDefence = homeInfo.ga / homeInfo.played;   // home goals conceded/game
+        const awayAttack  = awayInfo.gf / awayInfo.played;
+        const awayDefence = awayInfo.ga / awayInfo.played;
+
+        // League average goals per game (both for and against, normalised)
+        // We use the two teams' combined average as a proxy for league average
+        // when we don't have the full table average — good enough for our model.
+        const leagueAvgScored  = (homeAttack + awayAttack) / 2;
+        const leagueAvgConceded = (homeDefence + awayDefence) / 2;
+
+        // Dixon-Coles inspired attack/defence strengths relative to league avg
+        const homeAttackStr  = leagueAvgScored  > 0 ? homeAttack  / leagueAvgScored  : 1;
+        const homeDefenceStr = leagueAvgConceded > 0 ? homeDefence / leagueAvgConceded : 1;
+        const awayAttackStr  = leagueAvgScored  > 0 ? awayAttack  / leagueAvgScored  : 1;
+        const awayDefenceStr = leagueAvgConceded > 0 ? awayDefence / leagueAvgConceded : 1;
+
+        // Expected goals for each team in THIS match
+        // Home xG = home attack strength × away defence weakness × league avg × home advantage
+        const HOME_ADV = 1.1; // ~10% home scoring boost (empirical)
+        const xgHome = homeAttackStr * awayDefenceStr * leagueAvgScored * HOME_ADV;
+        const xgAway = awayAttackStr * homeDefenceStr * leagueAvgScored;
+
+        // Clamp to reasonable range
+        const λh = Math.max(0.2, Math.min(4.5, xgHome));
+        const λa = Math.max(0.2, Math.min(4.5, xgAway));
+
+        // P(Over 2.5) = 1 - P(total goals ≤ 2)
+        // Sum over all combinations where home + away ≤ 2
+        let pUnder = 0;
+        for (let h = 0; h <= 2; h++) {
+          for (let a = 0; a <= 2 - h; a++) {
+            pUnder += poissonProb(λh, h) * poissonProb(λa, a);
+          }
+        }
+        const over25 = Math.round((1 - pUnder) * 100);
+
+        // P(BTTS Yes) = P(home ≥ 1) × P(away ≥ 1)
+        const pHomeScoRes = 1 - poissonProb(λh, 0); // P(home scores)
+        const pAwayScores = 1 - poissonProb(λa, 0); // P(away scores)
+        const btts = Math.round(pHomeScoRes * pAwayScores * 100);
+
+        return {
+          over25: Math.max(5, Math.min(95, over25)),
+          btts:   Math.max(5, Math.min(95, btts)),
+          xgHome: Math.round(λh * 10) / 10,
+          xgAway: Math.round(λa * 10) / 10,
+          lowSample: homeInfo.played < 8 || awayInfo.played < 8,
+        };
+      }
+
       function buildVerdict(pred, homeShort, awayShort) {
         const { outcome, homeScore: hs, awayScore: as_ } = pred;
         const diff = Math.abs(hs - as_);
@@ -2430,6 +2523,21 @@
           onclick="event.stopPropagation(); addToSlip(${i}, this)"
         >${alreadyAdded ? '✓' : '+'}</button>
       </div>
+      ${(() => {
+        const gm = prediction.goalMarkets;
+        if (!gm || gm.over25 === null) return '';
+        const overCls  = gm.over25 >= 55 ? 'over' : gm.over25 <= 45 ? 'under' : 'neutral';
+        const bttsCls  = gm.btts   >= 55 ? 'btts-yes' : gm.btts <= 45 ? 'btts-no' : 'neutral';
+        const overLabel  = gm.over25 >= 50 ? 'Over 2.5' : 'Under 2.5';
+        const bttsLabel  = gm.btts   >= 50 ? 'BTTS Yes' : 'BTTS No';
+        const warn = gm.lowSample ? '<span class="market-low-sample">*low sample</span>' : '';
+        return `<div class="market-row">
+          <span class="market-badge ${overCls}"><span class="market-badge-label">O/U</span>${overLabel} ${gm.over25}%</span>
+          <span class="market-badge ${bttsCls}"><span class="market-badge-label">BTTS</span>${bttsLabel} ${gm.btts}%</span>
+          <span class="market-badge neutral"><span class="market-badge-label">xG</span>${gm.xgHome}–${gm.xgAway}</span>
+          ${warn}
+        </div>`;
+      })()}
       <div class="fixture-bottom">
         <div class="form-row">${dots(homeForm)}</div>
         <div class="fixture-meta">
@@ -2627,6 +2735,62 @@
     ${compareRow("Goals allowed per game", homeTeamScore?.defense ?? 0, awayTeamScore?.defense ?? 0)}
     ${compareRow("Home / Away win rate", homeTeamScore?.homeRate ?? 0, awayTeamScore?.awayRate ?? 0, (v) => Math.round(v * 100) + "%")}
 
+    <div class="section-subtitle">Goal markets</div>
+    ${(() => {
+      const gm = p.prediction?.goalMarkets;
+      if (!gm || gm.over25 === null) return `
+        <div style="padding:12px 14px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);font-size:12px;color:var(--text-dim)">
+          Not enough matches played yet to compute goal market probabilities (need ≥ 3 games).
+        </div>`;
+      const warn = gm.lowSample
+        ? `<div style="font-size:10.5px;color:var(--draw);margin-top:8px">⚠ Low sample size (&lt;8 games) — probabilities will improve as the season progresses.</div>`
+        : '';
+      const over25Cls  = gm.over25 >= 55 ? 'var(--win)'  : gm.over25 <= 45 ? 'var(--loss)' : 'var(--text-muted)';
+      const under25Cls = gm.over25 >= 55 ? 'var(--loss)' : gm.over25 <= 45 ? 'var(--win)'  : 'var(--text-muted)';
+      const bttsCls    = gm.btts   >= 55 ? 'var(--win)'  : gm.btts   <= 45 ? 'var(--loss)' : 'var(--text-muted)';
+      const noBttsCls  = gm.btts   >= 55 ? 'var(--loss)' : gm.btts   <= 45 ? 'var(--win)'  : 'var(--text-muted)';
+      return `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px 15px">
+            <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px">Over / Under 2.5 Goals</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-size:12.5px;color:var(--text-muted);font-weight:500">Over 2.5</span>
+              <span style="font-size:15px;font-weight:800;font-family:var(--mono);color:${over25Cls}">${gm.over25}%</span>
+            </div>
+            <div style="height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:8px">
+              <div style="height:100%;width:${gm.over25}%;background:${over25Cls};border-radius:3px;transition:width .4s"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:12.5px;color:var(--text-muted);font-weight:500">Under 2.5</span>
+              <span style="font-size:15px;font-weight:800;font-family:var(--mono);color:${under25Cls}">${100 - gm.over25}%</span>
+            </div>
+          </div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px 15px">
+            <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px">Both Teams to Score</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-size:12.5px;color:var(--text-muted);font-weight:500">Yes</span>
+              <span style="font-size:15px;font-weight:800;font-family:var(--mono);color:${bttsCls}">${gm.btts}%</span>
+            </div>
+            <div style="height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:8px">
+              <div style="height:100%;width:${gm.btts}%;background:${bttsCls};border-radius:3px;transition:width .4s"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:12.5px;color:var(--text-muted);font-weight:500">No</span>
+              <span style="font-size:15px;font-weight:800;font-family:var(--mono);color:${noBttsCls}">${100 - gm.btts}%</span>
+            </div>
+          </div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div style="font-size:12px;color:var(--text-muted);font-weight:500">Expected goals (xG)</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:13px;font-weight:700;font-family:var(--mono);color:var(--text)">${homeShort} <span style="color:var(--accent)">${gm.xgHome}</span></span>
+            <span style="font-size:11px;color:var(--text-dim)">vs</span>
+            <span style="font-size:13px;font-weight:700;font-family:var(--mono);color:var(--text)">${awayShort} <span style="color:var(--accent)">${gm.xgAway}</span></span>
+          </div>
+        </div>
+        ${warn}`;
+    })()}
+
     ${(() => {
       const noData = (!homeInfo || homeInfo.played === 0) && (!awayInfo || awayInfo.played === 0);
       if (noData) return `
@@ -2720,6 +2884,7 @@
       function applyCachedResult(cached, league, gw) {
         predictions = cached.predictions;
         currentGW = gw;
+        currentLeague = league;
         document.getElementById("pageTitle").textContent =
           LEAGUE_MAP[league]?.name || league;
         document.getElementById("gwDisplay").value = gw;
@@ -2728,12 +2893,11 @@
           : "none";
         document.getElementById("pageSub").textContent =
           `${cached.predictions.length} fixtures · GW${gw} · ${currentSeason}/${parseInt(currentSeason) + 1} · loaded from cache`;
-        document.getElementById("gwPrev").disabled = gw <= minGW;
-        document.getElementById("gwNext").disabled = gw >= maxGW;
         document.getElementById("gwPrev").disabled = false;
         document.getElementById("gwNext").disabled = false;
         renderFixtures();
         hideOverallProgress();
+        persistCacheToSession(); // snapshot current view state
       }
 
       async function loadLeague(league, gw, opts) {
@@ -2792,11 +2956,13 @@
               gwToLoad = autoGwCache[gwKey];
             } else {
               gwToLoad = await fetchCurrentGW(league, currentSeason);
-              autoGwCache[gwKey] = gwToLoad;
             }
             isAuto = true;
             if (!silent) document.getElementById("gwDisplay").value = gwToLoad;
           }
+          // Always store the resolved GW so the cache key lookup works on
+          // page return, even when the GW was provided explicitly (not auto-detected)
+          autoGwCache[gwKey] = gwToLoad;
           if (!silent)
             document.getElementById("gwAutoBadge").style.display = isAuto
               ? "inline-block"
@@ -2922,12 +3088,15 @@
               awayId,
             );
             const prediction = predictMatch(homeTeamScore, awayTeamScore);
+            const goalMarkets = computeGoalMarkets(homeInfo, awayInfo, standings.total);
             const homeRecentWithContrib = homeTeamScore.breakdown.length
               ? homeTeamScore.breakdown
               : homeRecent;
             const awayRecentWithContrib = awayTeamScore.breakdown.length
               ? awayTeamScore.breakdown
               : awayRecent;
+            // Attach goal markets to prediction so card and detail can use them
+            prediction.goalMarkets = goalMarkets;
             return {
               match,
               homeInfo,
@@ -3091,16 +3260,19 @@
 
       function persistCacheToSession() {
         try {
-          // sessionStorage has ~5MB limit; we only store what we need to
-          // re-render (no raw API data, just computed prediction objects).
           sessionStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(predictionCache));
           sessionStorage.setItem(SESSION_GW_KEY,    JSON.stringify(autoGwCache));
-          // Store which leagues are ready so we can restore status dots
+          // Also persist current view state so returning from another page
+          // restores the exact league/season/GW the user was looking at
           const states = {};
           LEAGUES.forEach(l => { states[l.code] = leagueReadyState[l.code]; });
           sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(states));
+          sessionStorage.setItem('fixture_ai_view', JSON.stringify({
+            league: currentLeague,
+            season: currentSeason,
+            gw:     currentGW,
+          }));
         } catch(e) {
-          // sessionStorage full or unavailable — silently skip; app still works
           console.warn('Could not persist cache to sessionStorage:', e.message);
         }
       }
@@ -3110,19 +3282,39 @@
           const raw = sessionStorage.getItem(SESSION_CACHE_KEY);
           const gws = sessionStorage.getItem(SESSION_GW_KEY);
           const sts = sessionStorage.getItem(SESSION_STATE_KEY);
+          const view = sessionStorage.getItem('fixture_ai_view');
           if (raw) {
             const parsed = JSON.parse(raw);
-            // Merge into predictionCache (don't overwrite anything already in memory)
             Object.assign(predictionCache, parsed);
           }
-          if (gws)  Object.assign(autoGwCache, JSON.parse(gws));
+          if (gws) Object.assign(autoGwCache, JSON.parse(gws));
           if (sts) {
             const states = JSON.parse(sts);
             Object.keys(states).forEach(code => {
               leagueReadyState[code] = states[code];
             });
           }
-          return !!raw; // true = we had data
+          // Restore view state — crucial for correct cache key lookup
+          if (view) {
+            const v = JSON.parse(view);
+            if (v.season) currentSeason = v.season;
+            if (v.league) currentLeague = v.league;
+            if (v.gw)     currentGW     = v.gw;
+            // Sync sidebar and drawer season selects
+            const ss = document.getElementById('seasonSelect');
+            if (ss) ss.value = currentSeason;
+            const ds = document.getElementById('drawerSeasonSelect');
+            if (ds) ds.value = currentSeason;
+            // Sync sidebar league display
+            if (v.league && LEAGUE_MAP[v.league]) {
+              const lm = LEAGUE_MAP[v.league];
+              const flagEl = document.getElementById('activeLeagueFlag');
+              const textEl = document.getElementById('activeLeagueText');
+              if (flagEl) flagEl.textContent = lm.flag;
+              if (textEl) textEl.textContent = lm.name;
+            }
+          }
+          return !!raw;
         } catch(e) {
           console.warn('Could not restore cache from sessionStorage:', e.message);
           return false;
@@ -3136,12 +3328,12 @@
         persistCacheToSession();
       };
 
-      async function startSequentialPreload() {
+      async function startSequentialPreload(gwOverride) {
         if (preloadRunning) return;
         preloadRunning = true;
 
-        // ── Try to restore from sessionStorage first ──
-        const hadCache = restoreCacheFromSession();
+        // Restore any cached predictions from sessionStorage
+        restoreCacheFromSession();
 
         // Mark any league that already has a cache entry as ready
         LEAGUES.forEach(l => {
@@ -3155,9 +3347,12 @@
         });
         renderLeagueDropdown();
 
-        // ── Show the first already-cached league immediately ──
-        const firstCached = LEAGUES.find(l => leagueReadyState[l.code] === 'ready');
-        if (firstCached) {
+        // ── Show first ready+selected league immediately ──
+        const firstCached = LEAGUES.find(l =>
+          selectedLeagues.has(l.code) && leagueReadyState[l.code] === 'ready'
+        );
+        if (firstCached && !currentLeague) {
+          // Only auto-switch if no league is already being displayed
           currentLeague = firstCached.code;
           const lMeta = LEAGUE_MAP[firstCached.code];
           document.getElementById('activeLeagueFlag').textContent = lMeta.flag;
@@ -3237,9 +3432,9 @@
             const l = LEAGUE_MAP[league];
             document.getElementById('activeLeagueFlag').textContent = l.flag;
             document.getElementById('activeLeagueText').textContent = l.name;
-            await loadLeague(league, null, { silent: false });
+            await loadLeague(league, gwOverride || null, { silent: false });
           } else {
-            await loadLeague(league, null, { silent: true });
+            await loadLeague(league, gwOverride || null, { silent: true });
           }
 
           // Update dropdown dots after each league completes
@@ -3280,6 +3475,7 @@
         if (isInSlip(slipId)) { showSlipToast('Already in bet slip'); return; }
         const pick = prediction.outcome === 'home' ? 'Home Win'
           : prediction.outcome === 'away' ? 'Away Win' : 'Draw';
+        const gm = prediction.goalMarkets || {};
         const bet = {
           id: Date.now().toString(36) + Math.random().toString(36).slice(2,5),
           slipId,
@@ -3292,10 +3488,19 @@
           odds: null, stake: null, notes: null,
           status: 'pending',
           addedAt: new Date().toISOString(),
+          // Result market predictions
           predProbHome: prediction.probHome,
           predProbDraw: prediction.probDraw,
           predProbAway: prediction.probAway,
-          predConfidence: prediction.confidence
+          predConfidence: prediction.confidence,
+          // Goal market predictions
+          predOver25:  gm.over25  ?? null,
+          predUnder25: gm.over25  != null ? 100 - gm.over25 : null,
+          predBttsYes: gm.btts    ?? null,
+          predBttsNo:  gm.btts    != null ? 100 - gm.btts   : null,
+          predXgHome:  gm.xgHome  ?? null,
+          predXgAway:  gm.xgAway  ?? null,
+          predLowSample: gm.lowSample ?? false,
         };
         const bets = loadSlip();
         bets.unshift(bet);
@@ -3486,15 +3691,36 @@
         updatePickerCount();
       }
 
+      // Read season + GW from picker inputs and apply to app state
+      function _applyPickerInputs() {
+        const seasonInput = document.getElementById('pickerSeasonInput');
+        if (seasonInput && seasonInput.value) {
+          currentSeason = seasonInput.value;
+          const sidebarSel = document.getElementById('seasonSelect');
+          if (sidebarSel) sidebarSel.value = currentSeason;
+          const drawerSel = document.getElementById('drawerSeasonSelect');
+          if (drawerSel) drawerSel.value = currentSeason;
+        }
+        const gwInput = document.getElementById('pickerGwInput');
+        const gw = gwInput && gwInput.value ? parseInt(gwInput.value, 10) : null;
+        return (gw && !isNaN(gw) && gw >= 1) ? gw : null;
+      }
+
       function pickerLeagueClick(code) {
         const state = leagueReadyState[code];
         const isReady   = state === 'ready';
         const isCurrent = code === currentLeague;
 
         if (!pickerIsFirstVisit && (isReady || isCurrent)) {
-          // Already loaded — switch to it immediately and close the picker
+          // Read season/GW from picker before closing
+          const gwOverride = _applyPickerInputs();
           dismissPicker();
-          if (!isCurrent) selectLeague(code);
+          if (isCurrent) {
+            // Same league — if GW changed, reload it
+            if (gwOverride) loadLeague(code, gwOverride, { silent: false });
+          } else {
+            _switchToLeague(code, gwOverride);
+          }
           return;
         }
 
@@ -3504,10 +3730,11 @@
         renderPickerGrid();
       }
 
-      function _switchToLeague(code) {
+      function _switchToLeague(code, gwOverride) {
         const gwKey  = `${code}_${currentSeason}`;
         const gw     = autoGwCache[gwKey];
-        const cached = gw && predictionCache[cacheKey(code, currentSeason, gw)];
+        // Only use cache if no GW override is specified
+        const cached = !gwOverride && gw && predictionCache[cacheKey(code, currentSeason, gw)];
         if (cached) {
           selectLeague(code);
         } else {
@@ -3517,7 +3744,7 @@
             document.getElementById('activeLeagueFlag').textContent = l.flag;
             document.getElementById('activeLeagueText').textContent = l.name;
           }
-          loadLeague(code, null, { silent: false });
+          loadLeague(code, gwOverride || null, { silent: false });
         }
       }
 
@@ -3546,48 +3773,65 @@
         if (selectedLeagues.size === 0) return;
         saveSelectedLeagues();
 
-        // Close picker and drawer cleanly, clearing any pushed history states
-        const layer = _navLayer;
-        _navLayer = null;
+        // Read season from picker
+        const seasonInput = document.getElementById('pickerSeasonInput');
+        const pickedSeason = seasonInput && seasonInput.value ? seasonInput.value : currentSeason;
 
-        // Dismiss picker
+        // Read GW from picker
+        const gwInput = document.getElementById('pickerGwInput');
+        const pickedGw = gwInput && gwInput.value ? parseInt(gwInput.value, 10) : null;
+        const newGw = (pickedGw && !isNaN(pickedGw) && pickedGw >= 1) ? pickedGw : null;
+
+        // Did the season or GW change?
+        const seasonChanged = pickedSeason !== currentSeason;
+        const gwChanged     = newGw !== null && newGw !== currentGW;
+        const needFullReset = pickerIsFirstVisit || seasonChanged || gwChanged;
+
+        // Apply new season/GW
+        currentSeason = pickedSeason;
+        if (newGw) currentGW = newGw;
+
+        // Sync sidebar selects
+        const ss = document.getElementById('seasonSelect');
+        if (ss) ss.value = currentSeason;
+        const ds = document.getElementById('drawerSeasonSelect');
+        if (ds) ds.value = currentSeason;
+
+        // Hide picker and drawer immediately
+        _navLayer = null;
         const pickerEl = document.getElementById('leaguePicker');
         if (pickerEl) {
-          pickerEl.classList.add('hidden');
-          setTimeout(() => { if (pickerEl.parentNode) pickerEl.parentNode.removeChild(pickerEl); }, 350);
+          pickerEl.style.display = 'none';
+          setTimeout(() => { if (pickerEl.parentNode) pickerEl.parentNode.removeChild(pickerEl); }, 400);
         }
-
-        // Also close the drawer if it was open underneath
-        document.getElementById('bottomDrawer')?.classList.remove('open');
-        document.getElementById('bdOverlay')?.classList.remove('open');
+        const drawerEl = document.getElementById('bottomDrawer');
+        const overlayEl = document.getElementById('bdOverlay');
+        if (drawerEl) drawerEl.classList.remove('open');
+        if (overlayEl) overlayEl.classList.remove('open');
         document.body.style.overflow = '';
 
-        // Clear the history states we pushed (picker + possibly drawer)
-        // so the back button goes to whatever was before, not back to the drawer
-        if (layer === 'picker-from-drawer') {
-          // We pushed 2 states: drawer + picker — go back 2
-          history.go(-2);
-        } else if (layer === 'picker-standalone' || layer === 'drawer') {
-          history.back();
-        }
-
-        if (pickerIsFirstVisit) {
-          pickerIsFirstVisit = false;
+        if (needFullReset) {
+          // Season or GW changed — clear everything and reload fresh
           Object.keys(predictionCache).forEach(k => delete predictionCache[k]);
           Object.keys(autoGwCache).forEach(k => delete autoGwCache[k]);
           Object.keys(leagueReadyState).forEach(k => leagueReadyState[k] = 'idle');
+          currentLeague = null;
           try {
             sessionStorage.removeItem(SESSION_CACHE_KEY);
             sessionStorage.removeItem(SESSION_GW_KEY);
             sessionStorage.removeItem(SESSION_STATE_KEY);
+            sessionStorage.removeItem('fixture_ai_view');
           } catch (_) {}
-          preloadRunning = false;
-          preloadPaused  = false;
-          renderLeagueDropdown();
-          startSequentialPreload();
-        } else {
-          if (!preloadRunning) startSequentialPreload();
         }
+        // If season/GW unchanged: keep existing caches — only NEW leagues will load
+
+        pickerIsFirstVisit = false;
+        preloadRunning = false;
+        preloadPaused  = false;
+        renderLeagueDropdown();
+
+        // Start loading — only uncached selected leagues will actually hit the API
+        startSequentialPreload(currentGW);
       }
 
       function dismissPicker() {
@@ -3601,67 +3845,132 @@
       function openLeaguePicker(fromDrawer) {
         pickerIsFirstVisit = false;
 
-        // Close drawer first if open (don't pop history — we'll push picker state)
         if (_navLayer === 'drawer') {
           document.getElementById('bottomDrawer').classList.remove('open');
           document.getElementById('bdOverlay').classList.remove('open');
           document.body.style.overflow = '';
-          // Don't change _navLayer yet — set below
         }
 
-        // Track where we came from
         _navLayer = fromDrawer ? 'picker-from-drawer' : 'picker-standalone';
-
-        // Push history so back button works
         history.pushState({ nav: _navLayer }, '');
 
-        let el = document.getElementById('leaguePicker');
-        // The close button behaviour depends on where we came from
-        const closeAction = fromDrawer
-          ? 'history.back()'
-          : 'history.back()';
-
-        if (!el) {
-          el = document.createElement('div');
-          el.id = 'leaguePicker';
-          el.innerHTML = `<div class="picker-card">
-            <div class="picker-header">
-              <div class="picker-header-left">
-                <div class="picker-eyebrow">Fixture AI</div>
-                <div class="picker-title">Switch or add leagues</div>
-              </div>
-              <button class="picker-close" onclick="${closeAction}" title="Close">✕</button>
-            </div>
-            <div class="picker-sub">Tap a league to switch. Unloaded leagues fetch automatically.</div>
-            <div class="picker-grid" id="pickerGrid"></div>
-            <div class="picker-footer">
-              <div class="picker-count"><span id="pickerCount">${selectedLeagues.size}</span> selected</div>
-              <button class="picker-btn active" id="pickerConfirmBtn" onclick="confirmLeaguePicker()">Done</button>
-            </div>
-          </div>`;
-          document.body.appendChild(el);
+        // Show picker in switcher mode (no Select All/Clear All)
+        const existing = document.getElementById('leaguePicker');
+        if (existing) {
+          existing.classList.remove('hidden');
+          existing.style.display = '';
+          renderPickerGrid();
         } else {
-          el.classList.remove('hidden');
-          // Update close button
-          const closeBtn = el.querySelector('.picker-close');
-          if (closeBtn) closeBtn.setAttribute('onclick', closeAction);
+          showPicker('Switch or add leagues', false);
         }
+
+        // Sync season and GW to current state
+        const ps = document.getElementById('pickerSeasonInput');
+        if (ps) ps.value = currentSeason;
+        const pg = document.getElementById('pickerGwInput');
+        if (pg) pg.value = currentGW || '';
+        // Update close button to use history.back
+        const closeBtn = document.querySelector('#leaguePicker .picker-close');
+        if (closeBtn) closeBtn.setAttribute('onclick', 'history.back()');
+      }
+
+      // ── Build and show the picker modal on demand ─────────────────────
+      function showPicker(title, showActions) {
+        if (document.getElementById('leaguePicker')) return;
+        const el = document.createElement('div');
+        el.id = 'leaguePicker';
+        el.innerHTML = `<div class="picker-card">
+          <div class="picker-header">
+            <div class="picker-header-left">
+              <div class="picker-eyebrow">Fixture AI</div>
+              <div class="picker-title">${title}</div>
+            </div>
+            <button class="picker-close" onclick="dismissPicker()" title="Close">✕</button>
+          </div>
+          <div class="picker-sub">${showActions
+            ? 'Select which leagues to load. Only those will use API calls.'
+            : 'Tap a loaded league to switch instantly. Select others then click Done to load them.'}</div>
+          ${showActions ? `<div class="picker-actions-top" id="pickerActionsTop">
+            <button class="picker-link" onclick="pickerSelectAll()">Select all</button>
+            <button class="picker-link" onclick="pickerClearAll()">Clear all</button>
+          </div>` : ''}
+          <div class="picker-grid" id="pickerGrid"></div>
+          <div class="picker-gw-row">
+            <div class="picker-gw-label">
+              <span class="picker-gw-title">Season</span>
+              <span class="picker-gw-hint">Which season to load fixtures from</span>
+            </div>
+            <select class="picker-gw-input" id="pickerSeasonInput" style="width:110px;font-size:12px;font-weight:600;font-family:var(--sans);text-align:left">
+              <option value="2024"${currentSeason==='2024'?' selected':''}>2024/25</option>
+              <option value="2025"${currentSeason==='2025'?' selected':''}>2025/26</option>
+              <option value="2026"${currentSeason==='2026'?' selected':''}>2026/27</option>
+            </select>
+          </div>
+          <div class="picker-gw-row">
+            <div class="picker-gw-label">
+              <span class="picker-gw-title">Gameweek</span>
+              <span class="picker-gw-hint">Leave blank to auto-detect</span>
+            </div>
+            <input class="picker-gw-input" id="pickerGwInput" type="number" min="1" max="46" placeholder="Auto" value="${currentGW||''}"/>
+          </div>
+          <div class="picker-footer">
+            <div class="picker-count"><span id="pickerCount">${selectedLeagues.size}</span> selected</div>
+            <button class="picker-btn${selectedLeagues.size > 0 ? ' active' : ''}" id="pickerConfirmBtn" onclick="confirmLeaguePicker()">${selectedLeagues.size > 0 ? `Load ${selectedLeagues.size} league${selectedLeagues.size!==1?'s':''} →` : 'Select at least one'}</button>
+          </div>
+        </div>`;
+        document.body.appendChild(el);
         renderPickerGrid();
       }
 
       // ── Init ──
-      // Always show the league picker before making any API calls.
-      // If the user has a saved selection it pre-fills the checkboxes.
-      // startSequentialPreload() is ONLY called from confirmLeaguePicker().
       (function initApp() {
         const saved = loadSelectedLeagues();
-        pickerIsFirstVisit = true;
-        // Pre-fill from saved selection; on first ever visit start empty so user
-        // explicitly picks their leagues — no PL default forced on them.
-        selectedLeagues = saved || new Set();
-        renderLeagueDropdown();
-        renderPickerGrid();
-        // Picker is already visible in the HTML — no need to show it
+
+        if (saved && !!sessionStorage.getItem(SESSION_CACHE_KEY)) {
+          // ── Returning visit with cached data ────────────────────────────
+          // Restore caches + view state synchronously, then render immediately.
+          // No picker shown — user should see their last-viewed matches at once.
+          pickerIsFirstVisit = false;
+          selectedLeagues = saved;
+
+          // 1. Restore everything from sessionStorage synchronously
+          restoreCacheFromSession();
+
+          // 2. Update sidebar to show restored league
+          if (currentLeague && LEAGUE_MAP[currentLeague]) {
+            const lm = LEAGUE_MAP[currentLeague];
+            const flagEl = document.getElementById('activeLeagueFlag');
+            const textEl = document.getElementById('activeLeagueText');
+            if (flagEl) flagEl.textContent = lm.flag;
+            if (textEl) textEl.textContent = lm.name;
+          }
+
+          // 3. Render cached predictions immediately (synchronous)
+          if (currentLeague && currentGW) {
+            const ck = cacheKey(currentLeague, currentSeason, currentGW);
+            const cached = predictionCache[ck];
+            if (cached) applyCachedResult(cached, currentLeague, currentGW);
+          }
+
+          // 4. Mark ready leagues and update dropdown
+          renderLeagueDropdown();
+
+          // 5. Background preload for any other selected leagues not yet cached
+          startSequentialPreload(null);
+
+        } else if (saved) {
+          // Has saved leagues but no session cache — show picker pre-filled
+          pickerIsFirstVisit = true;
+          selectedLeagues = saved;
+          renderLeagueDropdown();
+          showPicker('Choose your leagues', true);
+        } else {
+          // True first visit — no saved selection
+          pickerIsFirstVisit = true;
+          selectedLeagues = new Set();
+          renderLeagueDropdown();
+          showPicker('Choose your leagues', true);
+        }
       })();
     </script>
   <div class="slip-toast" id="slipToast"></div>

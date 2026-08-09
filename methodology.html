@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Prediction Methodology — Fixture AI</title>
+<title>How Fixture AI Works — Full Methodology</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -13,341 +13,619 @@
   --text:#f0f0f8;--text-muted:#a0a0be;--text-dim:#60607a;
   --accent:#7c74ff;--accent-dim:rgba(124,116,255,0.13);--accent-glow:rgba(124,116,255,0.28);
   --win:#3ddc97;--draw:#ffc94d;--loss:#ff6b6b;
+  --win-dim:rgba(61,220,151,0.10);--draw-dim:rgba(255,201,77,0.10);--loss-dim:rgba(255,107,107,0.10);
   --mono:"JetBrains Mono",monospace;--sans:"Inter",sans-serif;
-  --max:720px;
+  --max:760px;
 }
 html{font-size:14px;background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}
-body{min-height:100vh;padding:0 16px 60px}
+body{min-height:100vh;padding:0 16px 80px}
 a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
-
 .wrap{max-width:var(--max);margin:0 auto}
 
-/* ── Top bar ── */
-.topbar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:20px 0 28px;border-bottom:1px solid var(--border);margin-bottom:40px;
-  gap:12px;flex-wrap:wrap;
-}
-.topbar-left{display:flex;align-items:center;gap:14px}
-.back-btn{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:7px 13px;border-radius:7px;
-  background:var(--surface);border:1px solid var(--border);
-  color:var(--text-muted);font-size:12.5px;font-weight:600;
-  transition:all .14s;cursor:pointer;text-decoration:none;
-}
-.back-btn:hover{border-color:var(--border-strong);color:var(--text);text-decoration:none}
-.page-eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
-.page-title{font-size:22px;font-weight:800;color:var(--text);margin-top:3px}
+/* Top bar */
+.topbar{padding:22px 0 30px;border-bottom:1px solid var(--border);margin-bottom:48px}
+.page-eyebrow{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.page-title{font-size:26px;font-weight:800;color:var(--text);line-height:1.2;margin-bottom:8px}
+.page-lead{font-size:14px;color:var(--text-muted);line-height:1.7;font-weight:400;max-width:600px}
 
-/* ── Sections ── */
-.section{margin-bottom:40px}
-.section-label{
-  font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--text-dim);margin-bottom:6px;
-}
-.section-heading{
-  font-size:17px;font-weight:800;color:var(--text);margin-bottom:14px;
-  padding-bottom:10px;border-bottom:1px solid var(--border);
-}
-.prose{font-size:13.5px;color:var(--text-muted);line-height:1.75;font-weight:400}
-.prose+.prose{margin-top:10px}
+/* TOC */
+.toc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:48px}
+.toc-title{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px}
+.toc-list{list-style:none;display:flex;flex-direction:column;gap:7px}
+.toc-list a{font-size:13px;color:var(--text-muted);font-weight:500;display:flex;align-items:center;gap:8px}
+.toc-list a:hover{color:var(--accent);text-decoration:none}
+.toc-num{font-family:var(--mono);font-size:11px;color:var(--text-dim);width:18px;flex-shrink:0}
+
+/* Sections */
+.section{margin-bottom:56px;scroll-margin-top:20px}
+.section-tag{font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+.section-heading{font-size:20px;font-weight:800;color:var(--text);margin-bottom:6px;line-height:1.25}
+.section-sub{font-size:13px;color:var(--text-dim);font-weight:500;margin-bottom:22px}
+
+/* Prose */
+.prose{font-size:13.5px;color:var(--text-muted);line-height:1.8;font-weight:400;margin-bottom:14px}
 .prose strong{color:var(--text);font-weight:700}
+.prose em{color:var(--draw);font-style:normal;font-weight:600}
 
-/* ── Steps ── */
-.steps{display:flex;flex-direction:column;gap:1px;margin-top:4px}
-.step{
-  display:flex;gap:14px;align-items:flex-start;
-  padding:16px 18px;background:var(--surface);
-  border:1px solid var(--border);transition:border-color .14s;
-}
+/* Callout boxes */
+.callout{border-radius:10px;padding:16px 18px;margin-bottom:16px;border-left:3px solid}
+.callout.info{background:var(--accent-dim);border-color:var(--accent)}
+.callout.warning{background:var(--draw-dim);border-color:var(--draw)}
+.callout.success{background:var(--win-dim);border-color:var(--win)}
+.callout.danger{background:var(--loss-dim);border-color:var(--loss)}
+.callout-title{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.callout.info .callout-title{color:var(--accent)}
+.callout.warning .callout-title{color:var(--draw)}
+.callout.success .callout-title{color:var(--win)}
+.callout.danger .callout-title{color:var(--loss)}
+.callout-body{font-size:13px;color:var(--text-muted);line-height:1.65}
+
+/* Steps */
+.steps{display:flex;flex-direction:column;gap:1px;margin-bottom:16px}
+.step{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;background:var(--surface);border:1px solid var(--border)}
 .step:first-child{border-radius:10px 10px 0 0}
 .step:last-child{border-radius:0 0 10px 10px}
 .step:only-child{border-radius:10px}
-.step:hover{border-color:var(--border-strong)}
-.step-num{
-  width:24px;height:24px;border-radius:6px;flex-shrink:0;
-  background:var(--accent-dim);color:var(--accent);
-  font-size:11px;font-weight:800;font-family:var(--mono);
-  display:flex;align-items:center;justify-content:center;margin-top:1px;
-}
-.step-body{}
+.step-num{width:26px;height:26px;border-radius:7px;flex-shrink:0;background:var(--accent-dim);color:var(--accent);font-size:11.5px;font-weight:800;font-family:var(--mono);display:flex;align-items:center;justify-content:center;margin-top:1px}
 .step-title{font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:5px}
-.step-desc{font-size:12.5px;color:var(--text-muted);line-height:1.65;font-weight:400}
+.step-desc{font-size:12.5px;color:var(--text-muted);line-height:1.7}
 .step-desc strong{color:var(--text);font-weight:700}
+.step-desc code{font-family:var(--mono);font-size:11.5px;background:var(--surface2);padding:1px 5px;border-radius:3px;color:var(--accent)}
 
-/* ── Formula block ── */
-.formula-wrap{
-  margin-top:4px;border-radius:10px;
-  background:var(--surface);border:1px solid var(--border);overflow:hidden;
-}
-.formula-label{
-  padding:9px 16px;background:var(--surface2);
-  border-bottom:1px solid var(--border);
-  font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--text-dim);
-}
-.formula-code{
-  padding:18px 20px;font-family:var(--mono);font-size:12px;
-  color:var(--text-muted);line-height:1.9;overflow-x:auto;white-space:pre;
-}
-.formula-code .kw{color:var(--accent)}
-.formula-code .val{color:var(--win)}
-.formula-code .cmt{color:var(--text-dim)}
+/* Formula */
+.formula-wrap{border-radius:10px;background:var(--surface);border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
+.formula-bar{padding:9px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim)}
+.formula-code{padding:18px 20px;font-family:var(--mono);font-size:12px;color:var(--text-muted);line-height:2;overflow-x:auto;white-space:pre}
+.kw{color:var(--accent)}.val{color:var(--win)}.cmt{color:var(--text-dim)}.op{color:var(--draw)}
 
-/* ── Key concept cards ── */
-.concept-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
-.concept-card{
-  padding:14px 16px;border-radius:10px;
-  background:var(--surface);border:1px solid var(--border);
-}
-.concept-icon{font-size:20px;margin-bottom:8px}
-.concept-title{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:5px}
-.concept-desc{font-size:12px;color:var(--text-muted);line-height:1.6;font-weight:400}
+/* Grid cards */
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.card-icon{font-size:22px;margin-bottom:10px}
+.card-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px}
+.card-body{font-size:12.5px;color:var(--text-muted);line-height:1.65}
 
-/* ── Example box ── */
-.example-box{
-  padding:18px 20px;border-radius:10px;
-  background:var(--surface);border:1px solid var(--border);
-  margin-top:4px;
-}
-.example-title{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px}
-.example-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
-.example-row:last-child{margin-bottom:0}
-.example-team{font-size:13px;font-weight:700;color:var(--text);width:140px;flex-shrink:0}
-.example-matches{display:flex;flex-direction:column;gap:4px;flex:1}
-.em{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}
-.em-res{
-  width:18px;height:18px;border-radius:4px;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:800;
-}
-.em-res.W{background:rgba(61,220,151,.15);color:var(--win)}
-.em-res.D{background:rgba(255,201,77,.15);color:var(--draw)}
-.em-res.L{background:rgba(255,107,107,.15);color:var(--loss)}
-.em-rank{font-size:10px;color:var(--text-dim);font-family:var(--mono)}
-.em-weight{
-  margin-left:auto;font-size:10px;font-family:var(--mono);
-  padding:1px 6px;border-radius:3px;font-weight:600;
-}
-.em-weight.hard{background:rgba(255,107,107,.13);color:var(--loss)}
-.em-weight.mid{background:rgba(255,201,77,.13);color:var(--draw)}
-.em-weight.easy{background:rgba(61,220,151,.13);color:var(--win)}
-.example-verdict{
-  margin-top:14px;padding:12px 14px;border-radius:8px;
-  background:var(--surface2);border:1px solid var(--border);
-  font-size:12.5px;color:var(--text-muted);line-height:1.6;
-}
-.example-verdict strong{color:var(--text)}
+/* Table */
+.data-table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:12.5px}
+.data-table th{text-align:left;padding:8px 12px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border-strong)}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text-muted);vertical-align:top}
+.data-table tr:last-child td{border-bottom:none}
+.data-table td:first-child{font-weight:700;color:var(--text);font-family:var(--mono);font-size:11.5px}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10.5px;font-weight:700;margin-left:4px}
+.tag.good{background:var(--win-dim);color:var(--win)}
+.tag.warn{background:var(--draw-dim);color:var(--draw)}
+.tag.bad{background:var(--loss-dim);color:var(--loss)}
 
-/* ── Limits notice ── */
-.notice{
-  padding:14px 16px;border-radius:10px;margin-top:4px;
-  background:rgba(124,116,255,.07);border:1px solid rgba(124,116,255,.22);
-  font-size:12.5px;color:var(--text-muted);line-height:1.65;
-}
-.notice strong{color:var(--text)}
+/* Divider */
+.divider{height:1px;background:var(--border);margin:40px 0}
+
+/* Example match */
+.match-example{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:16px}
+.match-teams{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.match-team{text-align:center;flex:1}
+.match-team-name{font-size:15px;font-weight:800;color:var(--text)}
+.match-team-stat{font-size:11px;color:var(--text-dim);margin-top:3px}
+.match-vs{font-size:12px;color:var(--text-dim);font-family:var(--mono);font-weight:600;padding:0 16px}
+.match-outcomes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.outcome-box{text-align:center;padding:10px 8px;border-radius:8px;border:1px solid var(--border)}
+.outcome-box.highlight{border-color:var(--win);background:var(--win-dim)}
+.outcome-label{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px}
+.outcome-pct{font-size:18px;font-weight:800;font-family:var(--mono)}
+.outcome-box.highlight .outcome-pct{color:var(--win)}
+
+/* Market cards */
+.market-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.market-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.market-title{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px}
+.market-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.market-label{font-size:12.5px;color:var(--text-muted)}
+.market-pct{font-size:15px;font-weight:800;font-family:var(--mono)}
+.market-bar{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-bottom:8px}
+.market-fill{height:100%;border-radius:2px}
+
+/* Limitations */
+.limit-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.limit-item{display:flex;gap:12px;align-items:flex-start;padding:13px 16px;background:var(--surface);border:1px solid var(--border);border-radius:9px}
+.limit-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.limit-text{font-size:12.5px;color:var(--text-muted);line-height:1.6}
+.limit-text strong{color:var(--text)}
 
 @media(max-width:600px){
-  .concept-grid{grid-template-columns:1fr}
-  .example-team{width:100px}
-  .topbar{padding:16px 0 20px;margin-bottom:28px}
+  .card-grid,.market-grid{grid-template-columns:1fr}
+  .page-title{font-size:21px}
+  .formula-code{font-size:11px}
+  .match-team-name{font-size:13px}
 }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <div class="topbar">
-    <div class="topbar-left">
-      <div>
-        <div class="page-eyebrow">Fixture AI</div>
-        <div class="page-title">Prediction Methodology</div>
+<div class="topbar">
+  <div class="page-eyebrow">Fixture AI · Full Documentation</div>
+  <div class="page-title">How the predictions work</div>
+  <div class="page-lead">A detailed, plain-English explanation of every algorithm, data source, formula, and decision behind Fixture AI — from raw API data to the final probability displayed on each card.</div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <div class="toc-title">Contents</div>
+  <ul class="toc-list">
+    <li><a href="#overview"><span class="toc-num">01</span>What Fixture AI actually does</a></li>
+    <li><a href="#data"><span class="toc-num">02</span>Where the data comes from</a></li>
+    <li><a href="#scoring"><span class="toc-num">03</span>Team scoring — the strength algorithm</a></li>
+    <li><a href="#result"><span class="toc-num">04</span>Result market — Home / Draw / Away probabilities</a></li>
+    <li><a href="#goals"><span class="toc-num">05</span>Goal markets — Over/Under 2.5 &amp; BTTS</a></li>
+    <li><a href="#confidence"><span class="toc-num">06</span>Confidence, stars, and how to read a card</a></li>
+    <li><a href="#betslip"><span class="toc-num">07</span>Bet slip — picks, odds, and tracking</a></li>
+    <li><a href="#limits"><span class="toc-num">08</span>Limitations and honest caveats</a></li>
+    <li><a href="#glossary"><span class="toc-num">09</span>Glossary of terms</a></li>
+  </ul>
+</div>
+
+
+<!-- 01 OVERVIEW -->
+<div class="section" id="overview">
+  <div class="section-tag">01 · Overview</div>
+  <div class="section-heading">What Fixture AI actually does</div>
+  <div class="section-sub">The big picture before we get into the maths</div>
+
+  <p class="prose">Fixture AI is a <strong>statistical football prediction engine</strong>. It takes publicly available match and standings data, runs it through a series of mathematical models, and outputs probabilities for three types of outcomes per fixture: the result (home win / draw / away win), the goals total (over or under 2.5), and whether both teams will score.</p>
+
+  <p class="prose">The predictions are not guesses or opinions. Every number you see — the 63% home win probability, the 58% BTTS likelihood — is the result of a deterministic calculation. Given the same input data, the model will always produce the same output. There is no randomness and no black-box machine learning.</p>
+
+  <div class="callout info">
+    <div class="callout-title">Why no machine learning?</div>
+    <div class="callout-body">Training a reliable ML model for football requires millions of historical rows of labelled data and months of compute. The free football API tier provides current-season data only. Instead, Fixture AI uses well-established statistical methods — Poisson distributions and strength-of-schedule scoring — that are mathematically sound without requiring training data. These are the same methods used as baselines by professional quant sports analysts.</div>
+  </div>
+
+  <p class="prose">The system works in two stages. First it <strong>scores each team</strong> using their season standings — position, win rate, goals scored and conceded. Then it <strong>converts those scores into probabilities</strong> using the Poisson model for goals and a custom draw-adjusted model for the result market.</p>
+</div>
+
+
+<!-- 02 DATA -->
+<div class="section" id="data">
+  <div class="section-tag">02 · Data</div>
+  <div class="section-heading">Where the data comes from</div>
+  <div class="section-sub">Every API call made, what it returns, and how it is used</div>
+
+  <p class="prose">All data comes from the <strong>football-data.org API</strong> (free tier). Each league requires 3–4 API calls to fully load. The free tier is rate-limited to 10 requests per minute, so the app throttles itself to 9 per minute and loads leagues sequentially — one at a time — to avoid hitting the ceiling.</p>
+
+  <table class="data-table">
+    <thead>
+      <tr><th>API Call</th><th>Endpoint</th><th>What we use it for</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1 · Competition info</td>
+        <td>/competitions/{league}</td>
+        <td>Get <code>currentMatchday</code> (to auto-detect which gameweek is active) and <code>numberOfMatchdays</code> (to know the maximum GW for navigation). Different leagues have different totals — Bundesliga has 34, Championship has 46, Premier League has 38.</td>
+      </tr>
+      <tr>
+        <td>2 · GW status check</td>
+        <td>/competitions/{league}/matches?matchday=N</td>
+        <td>Check whether the current matchday's matches are all <code>FINISHED</code>. If they are, we advance to the next gameweek (e.g. if GW5 is over, we show GW6). If some are still <code>SCHEDULED</code>, we stay on the current GW. This is skipped for past seasons.</td>
+      </tr>
+      <tr>
+        <td>3 · Standings</td>
+        <td>/competitions/{league}/standings</td>
+        <td>The full league table. For every team: position, points, played, won, drawn, lost, goals for (GF), goals against (GA). This is the backbone of all predictions — the model uses GF/played and GA/played as proxies for attacking and defensive strength.</td>
+      </tr>
+      <tr>
+        <td>4 · Fixtures</td>
+        <td>/competitions/{league}/matches?matchday=N</td>
+        <td>The actual matches for the selected gameweek — home team, away team, kickoff time, and score (if finished). This populates the fixture cards.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout warning">
+    <div class="callout-title">Session caching</div>
+    <div class="callout-body">Once a league is loaded, its predictions are saved to <code>sessionStorage</code>. Navigating away (to the bet slip, for example) and coming back skips all API calls for that league — the data is restored instantly from cache. The cache is cleared when you change season or manually switch to a new league for the first time.</div>
+  </div>
+
+  <p class="prose">One deliberate design decision: <strong>we do not make per-team API calls</strong>. Earlier versions fetched each team's recent match history (10 games × ~18 teams = ~180 extra calls per league). This was removed to make the app practical on the free API tier. The trade-off is that "form" is inferred from season statistics rather than match-by-match results. The model is more stable but slightly less reactive to short-term slumps or streaks.</p>
+</div>
+
+
+<!-- 03 SCORING -->
+<div class="section" id="scoring">
+  <div class="section-tag">03 · Team Scoring</div>
+  <div class="section-heading">The strength algorithm</div>
+  <div class="section-sub">How we turn league standings into a single comparable score for each team</div>
+
+  <p class="prose">Every team in a fixture gets a <strong>strength score between 2 and 98</strong>. This score is what drives the result market probabilities. A score of 75 means the team is significantly above average; a score of 35 means they are below average. The score is never 0 or 100 — the model never considers any outcome impossible.</p>
+
+  <p class="prose">The score is built from three components, blended together:</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Position component (60% weight)</div>
+        <div class="step-desc">The team's current league rank is converted to a 0–80 scale. The league leader scores 80, the bottom team scores 30, and everyone scales linearly between those bounds.<br><br><code>posScore = 30 + ((totalTeams − rank) / totalTeams) × 50</code><br><br>This captures structural quality — a team sitting top of the table has been consistent across the whole season. We weight it at 60% because position is the most robust signal we have from a single standings API call.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Win rate component (30% weight)</div>
+        <div class="step-desc">The fraction of games won so far (<code>won / played</code>), scaled to 0–100. A team that has won every game gets 100; a team with no wins gets 0. This adds granularity that position alone misses — two teams on the same points can have very different win rates depending on how many draws they have accumulated.<br><br><code>winScore = (won / played) × 100</code></div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Draw rate component (10% weight)</div>
+        <div class="step-desc">Draws are a meaningful signal. A team with many draws is harder to beat than one that either wins or loses decisively. We add 10% weight to the draw rate so that solid-but-inconsistent teams aren't undervalued.<br><br><code>drawScore = (drawn / played) × 100</code></div>
       </div>
     </div>
   </div>
 
-  <!-- Overview -->
-  <div class="section">
-    <div class="section-label">Overview</div>
-    <div class="section-heading">Opponent-Strength Engine</div>
-    <p class="prose">Most prediction models look at raw form — how many wins a team has had recently. The problem: a team that has beaten five bottom-half sides in a row looks identical to a team that drew with the league leader and lost narrowly to the top four. Fixture AI fixes this by <strong>weighting every result by the quality of the opponent</strong> faced.</p>
-    <p class="prose" style="margin-top:10px">The core idea is that beating a #1-ranked team is worth far more than beating a #18-ranked team, and drawing against a top-4 side can be more valuable than three wins against relegation candidates. The algorithm identifies and penalises "false form" — a hot streak built entirely on weak opposition.</p>
+  <div class="formula-wrap">
+    <div class="formula-bar">Team strength score formula</div>
+    <div class="formula-code"><span class="cmt">── Input ───────────────────────────────────────────────────────</span>
+rank        = team's current league position  (1 = leader)
+totalTeams  = total clubs in the league       (e.g. 20 for PL)
+played      = matches played this season
+won, drawn  = results so far
+
+<span class="cmt">── Components ──────────────────────────────────────────────────</span>
+<span class="kw">posScore</span>   = 30 + ((totalTeams − rank) / totalTeams) × 50    <span class="cmt">← 30–80 range</span>
+<span class="kw">winScore</span>   = (won / played) × 100                            <span class="cmt">← 0–100 range</span>
+<span class="kw">drawScore</span>  = (drawn / played) × 100                          <span class="cmt">← 0–100 range</span>
+
+<span class="cmt">── Blend ────────────────────────────────────────────────────────</span>
+<span class="kw">rawScore</span>   = posScore × 0.60
+           + winScore × 0.30
+           + drawScore × 0.10
+
+<span class="cmt">── Clamp ────────────────────────────────────────────────────────</span>
+<span class="kw">teamScore</span>  = max(2, min(98, rawScore))      <span class="cmt">← never 0 or 100</span></div>
   </div>
 
-  <!-- How it works step by step -->
-  <div class="section">
-    <div class="section-label">Algorithm</div>
-    <div class="section-heading">Step-by-step walkthrough</div>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <div class="step-body">
-          <div class="step-title">Fetch recent match history</div>
-          <div class="step-desc">For each team in the fixture, the last <strong>10 finished matches</strong> are pulled from the API. Every match includes the final score and which team was home or away. The opponent's current <strong>league position</strong> is looked up from the standings table to determine their quality.</div>
-        </div>
+  <div class="callout warning">
+    <div class="callout-title">Early season accuracy</div>
+    <div class="callout-body">When fewer than 5 games have been played, all three components are noisy. A team that won their first two games by luck can outscore a genuinely stronger team. Treat predictions in the first 4–6 gameweeks of any season as indicative only. The model becomes more reliable around GW8–10 when standings begin to reflect true quality.</div>
+  </div>
+
+  <p class="prose">The attack and defence values used for goal markets are derived separately from the same standings data. <code>attack = GF / played</code> gives the average goals scored per game, and <code>defense = GA / played</code> gives the average conceded. These are not used in the strength score — they feed directly into the Poisson model described in section 05.</p>
+</div>
+
+
+<!-- 04 RESULT MARKET -->
+<div class="section" id="result">
+  <div class="section-tag">04 · Result Market</div>
+  <div class="section-heading">Home / Draw / Away probabilities</div>
+  <div class="section-sub">How two team scores become three percentages that add up to exactly 100%</div>
+
+  <p class="prose">Once each team has a strength score, we need to convert those two numbers into three probabilities: P(Home Win), P(Draw), P(Away Win). This is done in three steps: apply home advantage, compute draw probability, then split the remainder between home and away.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Home advantage adjustment</div>
+        <div class="step-desc">Playing at home is a well-documented statistical advantage in football. Across all major European leagues, home teams win roughly 45–48% of matches compared to ~27% for away teams. We model this by adding <strong>+8 points</strong> to the home team's score before any probability calculation.<br><br>This is a flat adjustment — it doesn't vary by league or team. In reality, some venues (Anfield, Signal Iduna Park) have a larger crowd effect than others, but we don't have venue-specific data on the free API tier.<br><br><code>homeAdj = teamScore(home) + 8</code><br><code>awayAdj = teamScore(away)</code></div>
       </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <div class="step-body">
-          <div class="step-title">Score opponent difficulty (SoS)</div>
-          <div class="step-desc">Each opponent is assigned a <strong>Strength of Schedule (SoS)</strong> score between 0 and 1. The league leader scores 1.0, the bottom side scores 0.0, everyone else scales linearly in between. This means a win against #1 carries maximum weight, while a win against #20 carries the minimum.<br><br>Formula: <code style="font-family:var(--mono);background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:11.5px">SoS = 1 − (oppRank − 1) / (totalTeams − 1)</code></div>
-        </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Draw probability</div>
+        <div class="step-desc">Draws are the hardest outcome to model. They are most likely when two teams are closely matched, and least likely when there is a large gap in quality. We use a formula that starts at <strong>32% base draw rate</strong> (the empirical average in professional football) and reduces it as the gap between the two teams' adjusted scores grows:<br><br><code>gap = |homeAdj − awayAdj|</code><br><code>P(Draw) = max(14%, min(34%, 0.32 − gap × 0.006))</code><br><br>So two teams with equal scores get a 32% draw probability. If one team is 30 points stronger, the draw drops to 14%. The floor of 14% ensures draws remain possible even in mismatches; the ceiling of 34% prevents draws dominating in even contests.</div>
       </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <div class="step-body">
-          <div class="step-title">Apply recency and difficulty weighting</div>
-          <div class="step-desc">Each match gets a <strong>compound weight</strong> combining two factors:<br><br>
-          • <strong>Recency factor</strong> — the most recent match is weighted 1.0, the oldest match is weighted 0.5, with linear decay in between. Recent form matters more.<br>
-          • <strong>Difficulty factor</strong> — ranges from 0.4 (weakest opponent) to 1.0 (strongest opponent). A result against a top side counts up to 2.5× more than the same result against a bottom side.<br><br>
-          <code style="font-family:var(--mono);background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:11.5px">difficulty = 0.4 + SoS × 0.6</code><br>
-          <code style="font-family:var(--mono);background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:11.5px">weight = recencyFactor × difficulty</code></div>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">4</div>
-        <div class="step-body">
-          <div class="step-title">Calculate per-match performance score</div>
-          <div class="step-desc">Each match is converted to a raw performance value before being weighted. The base is the result (win = 100, draw = 33, loss = 0), then adjusted by:<br><br>
-          • <strong>Goal difference bonus</strong> — scaled up by opponent strength. A 3-0 win against a strong side adds much more than a 3-0 win against a weak side.<br>
-          • <strong>Clean sheet bonus</strong> — also scaled by opponent strength (keeping a clean sheet against #1 matters more).<br>
-          • <strong>Heavy concession penalty</strong> — conceding 3 or more goals deducts points regardless of the result.</div>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">5</div>
-        <div class="step-body">
-          <div class="step-title">Aggregate into a team score (0–100)</div>
-          <div class="step-desc">All weighted performance values are averaged into a single <strong>opponent-adjusted team score</strong>. A small <strong>league-position bonus</strong> (up to 18 points) is added on top so current standing is still considered — but recent form always dominates. The final score is clamped between 2 and 98 so no team is rated as completely unbeatable or hopeless.</div>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">6</div>
-        <div class="step-body">
-          <div class="step-title">Convert scores to win/draw/away probabilities</div>
-          <div class="step-desc">The home team receives a <strong>fixed +8 point home advantage</strong> bonus. Both scores are then converted to shares of the total (so a 60 vs 40 gap becomes 60% home vs 40% away before draw is applied).<br><br>
-          <strong>Draw probability</strong> is calculated separately — it rises when two teams are closely matched and shrinks as the gap widens. This is what allows draws and away wins to appear naturally rather than having home win always dominate:<br><br>
-          <code style="font-family:var(--mono);background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:11.5px">P(draw) = 0.32 − |scoreGap| × 0.006  [clamped 14%–34%]</code><br><br>
-          The remaining probability is split between home and away proportionally, then all three are normalised to sum to exactly 100%.</div>
-        </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Split home/away and normalise</div>
+        <div class="step-desc">With the draw probability fixed, the remaining probability <code>(1 − P(Draw))</code> is split between home and away proportionally to their adjusted scores. Both values are then normalised so all three probabilities sum to exactly 100%.<br><br><code>P(Home) ∝ homeAdj × (1 − P(Draw))</code><br><code>P(Away) ∝ awayAdj × (1 − P(Draw))</code><br><code>P(Home) + P(Draw) + P(Away) = 100%</code> (always)</div>
       </div>
     </div>
   </div>
 
-  <!-- Formula reference -->
-  <div class="section">
-    <div class="section-label">Reference</div>
-    <div class="section-heading">Complete formula</div>
-    <div class="formula-wrap">
-      <div class="formula-label">Scoring model</div>
-      <div class="formula-code"><span class="cmt">── Opponent difficulty ──────────────────────────────────</span>
-<span class="kw">SoS</span>(opponent)  = 1 − (oppRank − 1) / (totalTeams − 1)
-<span class="kw">difficulty</span>    = 0.4 + SoS × 0.6
-<span class="kw">weight</span>(match) = recencyFactor × difficulty
+  <div class="formula-wrap">
+    <div class="formula-bar">Complete result market formula</div>
+    <div class="formula-code"><span class="kw">homeAdj</span>  = teamScore(home) + 8
+<span class="kw">awayAdj</span>  = teamScore(away)
+<span class="kw">gap</span>      = |homeAdj − awayAdj|
 
-<span class="cmt">── Per-match performance ────────────────────────────────</span>
-<span class="kw">perf</span> = (points/3 × 100)             <span class="cmt">  ← base: W=100, D=33, L=0</span>
-     + goalDiff × (5 + SoS × 15)    <span class="cmt">  ← scaled goal difference</span>
-     + (ga === 0 ? 8 × SoS : 0)     <span class="cmt">  ← clean sheet bonus</span>
-     − (ga >= 3 ? 10 : 0)           <span class="cmt">  ← concession penalty</span>
+<span class="kw">P(draw)</span>  = clamp(0.32 − gap × 0.006, <span class="val">0.14</span>, <span class="val">0.34</span>)
+<span class="kw">scale</span>    = 1 − P(draw)
 
-<span class="cmt">── Team score ───────────────────────────────────────────</span>
-<span class="kw">teamScore</span> = Σ(perf × weight) / Σ(weight)
-          + leaguePositionBonus      <span class="cmt">  ← up to +18, clamped [2, 98]</span>
+<span class="kw">rawHome</span>  = (homeAdj / (homeAdj + awayAdj)) × scale
+<span class="kw">rawAway</span>  = (awayAdj / (homeAdj + awayAdj)) × scale
 
-<span class="cmt">── Probabilities ────────────────────────────────────────</span>
-homeAdj   = teamScore(home) + 8     <span class="cmt">  ← home advantage</span>
-awayAdj   = teamScore(away)
-P(draw)   = 0.32 − |homeAdj − awayAdj| × 0.006  <span class="cmt"> [14%–34%]</span>
-P(home)   ∝ homeAdj × (1 − P(draw))
-P(away)   ∝ awayAdj × (1 − P(draw))
-          → normalised so P(home) + P(draw) + P(away) = 100%</div>
-    </div>
+<span class="cmt">── Normalise to exactly 100% ────────────────────────────────────</span>
+<span class="kw">total</span>    = rawHome + rawAway + P(draw)
+<span class="kw">P(home)</span>  = round(rawHome / total × 100)
+<span class="kw">P(away)</span>  = round(rawAway / total × 100)
+<span class="kw">P(draw)</span>  = 100 − P(home) − P(away)        <span class="cmt">← absorbs rounding errors</span></div>
   </div>
 
-  <!-- Key concepts -->
-  <div class="section">
-    <div class="section-label">Key concepts</div>
-    <div class="section-heading">What this model rewards and penalises</div>
-    <div class="concept-grid">
-      <div class="concept-card">
-        <div class="concept-icon">🏆</div>
-        <div class="concept-title">Beating strong opponents</div>
-        <div class="concept-desc">A win against the #1-ranked team is weighted at maximum difficulty (1.0). The same result against a bottom-half team is weighted at roughly 0.4 — more than 2× less valuable.</div>
+  <p class="prose">Here is a worked example. Brighton (rank #4 of 20) vs Manchester United (rank #10 of 20):</p>
+
+  <div class="match-example">
+    <div class="match-teams">
+      <div class="match-team">
+        <div class="match-team-name">Brighton</div>
+        <div class="match-team-stat">Rank #4 · Score 72</div>
       </div>
-      <div class="concept-card">
-        <div class="concept-icon">🤝</div>
-        <div class="concept-title">Drawing against top sides</div>
-        <div class="concept-desc">A draw against a league leader can outweigh three wins against relegation candidates once difficulty weighting is applied. The model sees the quality of opposition, not just the result.</div>
+      <div class="match-vs">vs</div>
+      <div class="match-team">
+        <div class="match-team-name">Man United</div>
+        <div class="match-team-stat">Rank #10 · Score 55</div>
       </div>
-      <div class="concept-card">
-        <div class="concept-icon">⚠️</div>
-        <div class="concept-title">False form detection</div>
-        <div class="concept-desc">A team with 5 wins in a row against bottom-half sides will score lower than a team with 2 wins and 2 draws against top-half sides. Easy fixtures don't translate to high scores.</div>
+    </div>
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.8">
+      homeAdj = 72 + 8 = <strong style="color:var(--text)">80</strong> &nbsp;·&nbsp; awayAdj = <strong style="color:var(--text)">55</strong> &nbsp;·&nbsp; gap = 25<br>
+      P(Draw) = 0.32 − 25 × 0.006 = <strong style="color:var(--text)">0.17 → 17%</strong><br>
+      P(Home) ∝ 80 / (80+55) × 83% = <strong style="color:var(--text)">49%</strong> &nbsp;·&nbsp; P(Away) = <strong style="color:var(--text)">34%</strong>
+    </div>
+    <div class="match-outcomes">
+      <div class="outcome-box highlight">
+        <div class="outcome-label">Home Win</div>
+        <div class="outcome-pct">49%</div>
       </div>
-      <div class="concept-card">
-        <div class="concept-icon">📅</div>
-        <div class="concept-title">Recency decay</div>
-        <div class="concept-desc">Results from 10 matches ago count half as much as last week's result. Teams are assessed on their current trajectory, not what they did at the start of the season.</div>
+      <div class="outcome-box">
+        <div class="outcome-label">Draw</div>
+        <div class="outcome-pct" style="color:var(--draw)">17%</div>
       </div>
-      <div class="concept-card">
-        <div class="concept-icon">⚽</div>
-        <div class="concept-title">Margin of victory matters</div>
-        <div class="concept-desc">A 4-0 win is worth more than a 1-0 win, especially against strong opponents. Goal difference bonuses scale with the difficulty of the opponent faced.</div>
-      </div>
-      <div class="concept-card">
-        <div class="concept-icon">🏠</div>
-        <div class="concept-title">Home advantage</div>
-        <div class="concept-desc">Every home team receives a fixed +8 point bonus before probabilities are calculated. This reflects the well-documented statistical advantage of playing at home.</div>
+      <div class="outcome-box">
+        <div class="outcome-label">Away Win</div>
+        <div class="outcome-pct" style="color:var(--loss)">34%</div>
       </div>
     </div>
   </div>
 
-  <!-- Example -->
-  <div class="section">
-    <div class="section-label">Example</div>
-    <div class="section-heading">Wolves vs Burnley — why raw form misleads</div>
-    <div class="example-box">
-      <div class="example-title">Recent form (last 5 matches)</div>
-      <div class="example-row">
-        <div class="example-team">Wolves</div>
-        <div class="example-matches">
-          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#4</span><div class="em-weight hard">Top side</div></div>
-          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#6</span><div class="em-weight hard">Top side</div></div>
-          <div class="em"><div class="em-res D">D</div> vs team ranked <span class="em-rank">#1</span><div class="em-weight hard">Top side</div></div>
-          <div class="em"><div class="em-res L">L</div> vs team ranked <span class="em-rank">#2</span><div class="em-weight hard">Top side</div></div>
-          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#9</span> <span style="color:var(--text-dim);font-size:10px">3-0</span><div class="em-weight mid">Mid table</div></div>
-        </div>
+  <p class="prose">The predicted outcome is always the one with the highest probability. In this case, <strong>Home Win at 49%</strong> is the prediction, even though the model is far from certain — it still gives Man United a 34% chance. This uncertainty is what the confidence star rating captures.</p>
+</div>
+
+
+<!-- 05 GOAL MARKETS -->
+<div class="section" id="goals">
+  <div class="section-tag">05 · Goal Markets</div>
+  <div class="section-heading">Over/Under 2.5 &amp; Both Teams to Score</div>
+  <div class="section-sub">How the Poisson distribution turns goal averages into goal market probabilities</div>
+
+  <p class="prose">Goal markets require a different model from the result market. Instead of comparing two scores against each other, we need to estimate the <strong>number of goals each team is likely to score</strong> in a specific match. We use the <em>Poisson distribution</em> — the standard statistical tool for modelling discrete event counts where individual events are independent (each goal is independent of the previous one).</p>
+
+  <div class="callout info">
+    <div class="callout-title">What is the Poisson distribution?</div>
+    <div class="callout-body">The Poisson distribution models "how many times does something happen in a fixed period, given we know the average rate?" If a team scores an average of 1.8 goals per game, the Poisson model tells us: P(0 goals) = 16.5%, P(1 goal) = 29.7%, P(2 goals) = 26.7%, P(3 goals) = 16.0%, and so on. Football goals are not perfectly Poisson (teams play more defensively when ahead), but the model fits observed match goal distributions well enough to be industry-standard.</div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Compute league average goals per game</div>
+        <div class="step-desc">We need a baseline to compare each team against. Since we only have the two fixture teams' data per call, we use their combined average as a proxy for the league average:<br><br><code>leagueAvgScored = (homeGF/played + awayGF/played) / 2</code><br><code>leagueAvgConceded = (homeGA/played + awayGA/played) / 2</code><br><br>This is an approximation — a full league average would be more accurate but requires fetching all teams' data. The approximation is reasonable in most match-ups.</div>
       </div>
-      <div class="example-row">
-        <div class="example-team">Burnley</div>
-        <div class="example-matches">
-          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#18</span><div class="em-weight easy">Lower table</div></div>
-          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#16</span><div class="em-weight easy">Lower table</div></div>
-          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#19</span><div class="em-weight easy">Lower table</div></div>
-          <div class="em"><div class="em-res W">W</div> vs team ranked <span class="em-rank">#8</span><div class="em-weight mid">Mid table</div></div>
-          <div class="em"><div class="em-res D">D</div> vs team ranked <span class="em-rank">#6</span><div class="em-weight hard">Top side</div></div>
-        </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Compute attack and defence strengths</div>
+        <div class="step-desc">Each team's attack and defence are rated relative to the league average. A team that scores 2.4 goals per game when the league average is 1.6 has an attack strength of 1.5 (50% above average). A team that concedes 2.0 per game against a league average of 1.4 has a defence strength of 1.43 (43% weaker than average).<br><br><code>homeAttackStr = (homeGF/played) / leagueAvgScored</code><br><code>homeDefenceStr = (homeGA/played) / leagueAvgConceded</code><br>(same for away team)</div>
       </div>
-      <div class="example-verdict">
-        Burnley's raw record (4W 1D) looks better than Wolves' (3W 1D 1L). But the model sees something different: <strong>Wolves faced top-half opposition in all five matches</strong>, while <strong>Burnley's four wins were all against bottom-half sides</strong>. After weighting, Wolves score significantly higher and are predicted to win. This is exactly the "false form" the algorithm is designed to catch.
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Compute expected goals (xG) per team</div>
+        <div class="step-desc">The expected goals for each team in this specific match combines their attack strength against the opposition's defensive weakness, scaled by the league average scoring rate. The home team also gets a <strong>10% home scoring boost</strong> (empirically observed across European leagues).<br><br><code>xG(home) = homeAttackStr × awayDefenceStr × leagueAvgScored × 1.1</code><br><code>xG(away) = awayAttackStr × homeDefenceStr × leagueAvgScored</code><br><br>xG values are clamped to a realistic range of [0.2, 4.5] — no team is expected to score fewer than 0.2 or more than 4.5 in any single match.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Apply the Poisson formula</div>
+        <div class="step-desc">Given an expected goals value λ, the probability of exactly k goals is:<br><br><code>P(X = k) = (λᵏ × e⁻λ) / k!</code><br><br>We compute this for every combination of home and away goals to build a full match goals distribution. For Over 2.5, we sum the probabilities of all combinations where home + away goals ≤ 2, and subtract from 1. For BTTS, we check whether each team scores at least one goal independently.</div>
       </div>
     </div>
   </div>
 
-  <!-- Limitations -->
-  <div class="section">
-    <div class="section-label">Limitations</div>
-    <div class="section-heading">What the model doesn't know</div>
-    <div class="notice">
-      <strong>Injuries and suspensions</strong> — the API doesn't provide squad availability data on the free tier, so a team missing its first-choice goalkeeper or striker will still be rated on its historical results.<br><br>
-      <strong>Early season</strong> — when fewer than 5 finished matches are available, the model falls back to league position as the primary signal. Predictions are less reliable in the first few gameweeks.<br><br>
-      <strong>Cup and international matches</strong> — the recent-form lookup pulls all finished matches, which may include domestic cups or continental games against non-league opponents whose ranking is unknown. These are assigned a mid-table difficulty estimate.<br><br>
-      <strong>Manager changes, motivation, and context</strong> — a team with nothing to play for in the final gameweek, or a manager sacked mid-week, will not be reflected in the model. Use predictions as one input alongside your own knowledge.
+  <div class="formula-wrap">
+    <div class="formula-bar">Goal market formulae</div>
+    <div class="formula-code"><span class="cmt">── Poisson probability ──────────────────────────────────────────</span>
+<span class="kw">P(X = k)</span>    = (λᵏ × e⁻λ) / k!           <span class="cmt">← where λ = expected goals</span>
+
+<span class="cmt">── Over 2.5 goals ───────────────────────────────────────────────</span>
+<span class="kw">P(total ≤ 2)</span> = Σ P(home=h) × P(away=a)   <span class="cmt">for all h+a ≤ 2</span>
+<span class="kw">P(Over 2.5)</span>  = 1 − P(total ≤ 2)
+
+<span class="cmt">── Both Teams to Score ──────────────────────────────────────────</span>
+<span class="kw">P(home ≥ 1)</span>  = 1 − P(home = 0) = 1 − e⁻λh
+<span class="kw">P(away ≥ 1)</span>  = 1 − P(away = 0) = 1 − e⁻λa
+<span class="kw">P(BTTS Yes)</span>  = P(home ≥ 1) × P(away ≥ 1)  <span class="cmt">← independent events</span>
+
+<span class="cmt">── Expected goals ───────────────────────────────────────────────</span>
+<span class="kw">λ(home)</span> = homeAttackStr × awayDefenceStr × leagueAvg × <span class="val">1.1</span>
+<span class="kw">λ(away)</span> = awayAttackStr × homeDefenceStr × leagueAvg
+           clamped to [<span class="val">0.2</span>, <span class="val">4.5</span>]</div>
+  </div>
+
+  <p class="prose">Continuing the Brighton vs Man United example, suppose Brighton average 2.1 goals scored and 1.0 conceded; Man United average 1.4 scored and 1.8 conceded:</p>
+
+  <div class="market-grid">
+    <div class="market-card">
+      <div class="market-title">Over / Under 2.5 Goals</div>
+      <div class="market-row">
+        <span class="market-label">Over 2.5</span>
+        <span class="market-pct" style="color:var(--win)">62%</span>
+      </div>
+      <div class="market-bar"><div class="market-fill" style="width:62%;background:var(--win)"></div></div>
+      <div class="market-row">
+        <span class="market-label">Under 2.5</span>
+        <span class="market-pct" style="color:var(--text-dim)">38%</span>
+      </div>
+    </div>
+    <div class="market-card">
+      <div class="market-title">Both Teams to Score</div>
+      <div class="market-row">
+        <span class="market-label">Yes</span>
+        <span class="market-pct" style="color:var(--win)">57%</span>
+      </div>
+      <div class="market-bar"><div class="market-fill" style="width:57%;background:var(--win)"></div></div>
+      <div class="market-row">
+        <span class="market-label">No</span>
+        <span class="market-pct" style="color:var(--text-dim)">43%</span>
+      </div>
     </div>
   </div>
+
+  <div class="callout warning">
+    <div class="callout-title">Low sample warning</div>
+    <div class="callout-body">When either team has played fewer than 8 games, goal market predictions are flagged with a ⚠ low-sample warning on the card. The Poisson model needs a stable goals-per-game average to be meaningful. A team that scored 4 goals in their opening match will have an inflated attack strength that corrects itself over the following weeks. Always treat early-season goal markets with extra scepticism.</div>
+  </div>
+</div>
+
+
+<!-- 06 CONFIDENCE -->
+<div class="section" id="confidence">
+  <div class="section-tag">06 · Confidence</div>
+  <div class="section-heading">Stars, confidence scores, and how to read a fixture card</div>
+  <div class="section-sub">What the stars mean and how to interpret the numbers</div>
+
+  <p class="prose">Each fixture card displays a <strong>1–5 star rating</strong> in the top left. This is a direct measure of how confident the model is in its predicted outcome. Specifically, it is the probability of the top predicted outcome:</p>
+
+  <table class="data-table">
+    <thead><tr><th>Stars</th><th>Top outcome probability</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td>★★★★★</td><td>Over 80%</td><td>Strong edge. The model sees a clear favourite. Consider with good odds.</td></tr>
+      <tr><td>★★★★</td><td>65%–80%</td><td>Solid edge. A meaningful lean towards one outcome.</td></tr>
+      <tr><td>★★★</td><td>50%–65%</td><td>Moderate lean. The favourite is likely but the match is competitive.</td></tr>
+      <tr><td>★★</td><td>38%–50%</td><td>Slight lean. All three outcomes remain in play.</td></tr>
+      <tr><td>★</td><td>Below 38%</td><td>Very open. Treat as a coin flip — avoid staking high on this.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout success">
+    <div class="callout-title">How to use confidence ratings</div>
+    <div class="callout-body">High confidence ratings (4–5 stars) do not mean the outcome is guaranteed. A 75% confidence means the model expects the result to be wrong 1 in 4 times. What high confidence does mean is that the model has found a statistically meaningful edge, which is exactly what you want when building a bet slip. Focus on 4–5 star picks, verify the odds make sense (implied probability should be below the model's probability), and keep stakes proportional to confidence.</div>
+  </div>
+
+  <p class="prose">The card also shows three percentage pills: <strong>H / D / A</strong> for home, draw, and away win probability. These always sum to 100%. The highlighted pill (in the card's accent colour) is the predicted outcome. When a match is finished, the card glows <span style="color:var(--win);font-weight:700">green</span> if the prediction was correct or <span style="color:var(--loss);font-weight:700">red</span> if it was wrong.</p>
+
+  <p class="prose">Below the percentage row you will see three badges: <strong>O/U</strong> (over/under 2.5 probability), <strong>BTTS</strong> (both teams to score), and <strong>xG</strong> (expected goals, e.g. "1.8–1.2" meaning home xG 1.8, away xG 1.2). These are colour-coded: green if the model favours that side of the market (≥55%), red if it disfavours it (≤45%), and grey if it's near 50/50.</p>
+</div>
+
+
+<!-- 07 BET SLIP -->
+<div class="section" id="betslip">
+  <div class="section-tag">07 · Bet Slip</div>
+  <div class="section-heading">How the bet slip works</div>
+  <div class="section-sub">Adding bets, changing picks, tracking results</div>
+
+  <p class="prose">The bet slip is a personal tracking tool. It does not connect to any bookmaker and does not place real bets. Its purpose is to let you log which predictions you are acting on, record your odds, and track your results over time.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon">➕</div>
+      <div class="card-title">Adding a match</div>
+      <div class="card-body">Tap the + button on any fixture card. The match is added with the AI's predicted pick pre-filled. The bet is stored in your browser's localStorage — it persists between sessions but is local to your device.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <div class="card-title">Changing your pick</div>
+      <div class="card-body">On the bet slip, each bet shows a pick dropdown. Only AI-approved options appear (those with ≥50% predicted probability). You can switch from "Home Win" to "Over 2.5" if both are AI-favoured, but cannot select "Away Win" if the model gives it less than 50%.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📊</div>
+      <div class="card-title">Recording odds</div>
+      <div class="card-body">Tap the odds field on any bet card to enter the decimal odds from your bookmaker. This lets you track expected value — if the model says 65% and the bookmaker offers 2.00 (implying 50%), that is a positive-value bet.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">✓</div>
+      <div class="card-title">Setting results</div>
+      <div class="card-body">Tap the status pill (⏳ PENDING) to open a dropdown with Won / Draw / Lost / Remove options. The card border changes colour to reflect the result: green for won, amber for draw, red for lost.</div>
+    </div>
+  </div>
+
+  <p class="prose">The sidebar (desktop) and drawer (mobile) show a live summary: total bets, and counts by status. The "Remove all" button in the sidebar removes all bet cards from the list but preserves the summary counts — useful for clearing a gameweek's worth of bets while keeping a record of your overall hit rate.</p>
+</div>
+
+
+<!-- 08 LIMITATIONS -->
+<div class="section" id="limits">
+  <div class="section-tag">08 · Limitations</div>
+  <div class="section-heading">What the model does not know</div>
+  <div class="section-sub">An honest account of where the predictions can go wrong</div>
+
+  <div class="limit-list">
+    <div class="limit-item">
+      <div class="limit-icon">🤕</div>
+      <div class="limit-text"><strong>Injuries and suspensions.</strong> The API does not provide squad availability data on the free tier. A team playing without its first-choice goalkeeper, striker, or holding midfielder will still be rated on its season statistics. A missing key player can shift a 65% prediction to closer to 50/50 in reality. Always cross-check injury news before committing to a stake.</div>
+    </div>
+    <div class="limit-item">
+      <div class="limit-icon">📅</div>
+      <div class="limit-text"><strong>Early season noise.</strong> In the first 5–8 gameweeks, standings are unstable. One lucky goal or one defensive error can place a team in the wrong half of the table. The model has no way to distinguish a genuine top-half team who had a bad start from a bottom-half team who fluked an early win. Confidence ratings are technically correct but based on unreliable inputs.</div>
+    </div>
+    <div class="limit-item">
+      <div class="limit-icon">💼</div>
+      <div class="limit-text"><strong>Manager changes.</strong> A newly appointed manager can fundamentally change a team's tactical shape, defensive solidity, and motivational level within days. The model sees the same statistics before and after the change. This is one of the most common reasons a high-confidence prediction goes wrong.</div>
+    </div>
+    <div class="limit-item">
+      <div class="limit-icon">🏆</div>
+      <div class="limit-text"><strong>End-of-season motivation.</strong> A top-half team that has secured European qualification, or a bottom-half team that has already been relegated, may field a weakened squad or play without full intensity. The model has no awareness of these motivational dynamics and will overestimate the strength of teams "coasting" at the end of a season.</div>
+    </div>
+    <div class="limit-item">
+      <div class="limit-icon">🌤</div>
+      <div class="limit-text"><strong>Weather, pitch, and cup congestion.</strong> A team playing their third match in seven days on a heavy pitch in December performs differently to the same team in peak condition in September. None of these contextual factors are available through the API.</div>
+    </div>
+    <div class="limit-item">
+      <div class="limit-icon">⚽</div>
+      <div class="limit-text"><strong>Tactical mismatches.</strong> A low-scoring defensive team can neutralise a high-scoring attack through specific tactical setups, regardless of what the statistics say. The Poisson model assumes scoring rates are independent — it does not account for one team deliberately sitting deep and hitting on the counter.</div>
+    </div>
+    <div class="limit-item">
+      <div class="limit-icon">🌍</div>
+      <div class="limit-text"><strong>Cup competitions and non-domestic leagues.</strong> The World Cup and Euro Championship have very different competitive dynamics to domestic leagues. Teams rest players; knockout-stage mentality differs from league-game mentality; group-stage incentives vary. The model applies the same algorithm regardless — treat international tournament predictions as lower confidence than domestic league predictions.</div>
+    </div>
+  </div>
+
+  <div class="callout danger">
+    <div class="callout-title">Gambling responsibly</div>
+    <div class="callout-body">Fixture AI is a statistical tool, not a tipster service. No model — however sophisticated — can predict football outcomes with certainty. Even the highest-confidence predictions are wrong a meaningful fraction of the time. Never bet more than you can afford to lose, and treat the predictions as one input among many rather than a definitive answer.</div>
+  </div>
+</div>
+
+
+<!-- 09 GLOSSARY -->
+<div class="section" id="glossary">
+  <div class="section-tag">09 · Glossary</div>
+  <div class="section-heading">Terms explained</div>
+  <div class="section-sub">Plain-English definitions of every technical term used in the app</div>
+
+  <table class="data-table">
+    <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+    <tbody>
+      <tr><td>xG</td><td>Expected Goals. The number of goals a team is statistically expected to score in a match, based on their attack strength and the opposition's defensive weakness. Not to be confused with shot-based xG used by advanced analytics — ours is derived from season averages.</td></tr>
+      <tr><td>Poisson distribution</td><td>A mathematical model for counting how many times a random event occurs in a fixed time period, given a known average rate. Used here to model goal counts per match.</td></tr>
+      <tr><td>Over 2.5</td><td>A bet that the match will contain 3 or more total goals. "2.5" is not a possible score — it is a line set between 2 and 3 goals so there is no push (tie). Over 2.5 means 3+ goals; Under 2.5 means 0, 1, or 2 goals.</td></tr>
+      <tr><td>BTTS</td><td>Both Teams To Score. A market where you predict whether both the home and the away team will score at least one goal in the match. BTTS Yes means both teams score; BTTS No means at least one team keeps a clean sheet.</td></tr>
+      <tr><td>Team score</td><td>Fixture AI's internal 0–98 rating for a team, combining their league position (60%), win rate (30%), and draw rate (10%). Used as the primary input for result-market probabilities.</td></tr>
+      <tr><td>Home advantage</td><td>The statistically observed tendency for home teams to win more often than away teams at the same quality level. Modelled as a flat +8 point addition to the home team's score.</td></tr>
+      <tr><td>Draw probability</td><td>Calculated as 32% base minus a penalty for the quality gap between teams. Larger mismatches produce fewer draws; closely matched teams produce more draws.</td></tr>
+      <tr><td>Attack strength</td><td>A team's average goals scored per game, divided by the league average. A value above 1.0 means the team scores more than average; below 1.0 means less than average.</td></tr>
+      <tr><td>Defence strength</td><td>A team's average goals conceded per game, divided by the league average. A value above 1.0 means the team concedes more than average (weaker defence); below 1.0 means tighter (stronger defence).</td></tr>
+      <tr><td>Confidence</td><td>The probability of the top predicted outcome. A confidence of 70% means the model's top pick is expected to occur 70 times out of 100. Displayed as a 1–5 star rating on each fixture card.</td></tr>
+      <tr><td>Gameweek (GW)</td><td>A round of fixtures in a domestic league season. Each team typically plays once per gameweek. The app auto-detects the current active or upcoming gameweek and navigates to it by default.</td></tr>
+      <tr><td>Decimal odds</td><td>The bookmaker's pricing format used in Europe and Australia. Decimal odds of 2.50 mean you receive 2.50× your stake back if you win (including your original stake), implying a 40% probability. Implied probability = 1 / decimal odds.</td></tr>
+      <tr><td>Positive expected value (+EV)</td><td>A bet is +EV when the model's probability is higher than the bookmaker's implied probability. Example: model says 65%, bookmaker offers 2.00 (implying 50%) — this is +EV. Over the long run, consistently finding +EV bets should produce profit.</td></tr>
+      <tr><td>Low sample warning</td><td>A ⚠ flag shown on goal market predictions when either team has played fewer than 8 games. With a small sample, the averages used by the Poisson model are unreliable and the predictions carry higher uncertainty than usual.</td></tr>
+      <tr><td>SessionStorage</td><td>A browser feature that stores data for the duration of a browser tab session. Fixture AI uses it to cache prediction data so navigating between pages is instant. The cache clears when you close the tab or change the season.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="divider"></div>
+<div style="text-align:center;padding-bottom:20px">
+  <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px">Fixture AI · Prediction Methodology v3.0</div>
+  <a href="index.html" style="font-size:13px;font-weight:600;color:var(--accent)">← Back to Predictions</a>
+</div>
 
 </div>
 </body>

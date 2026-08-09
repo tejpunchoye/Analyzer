@@ -162,6 +162,24 @@ button{cursor:pointer;border:none;background:none;font-family:var(--sans);color:
 .bm-val{font-size:13px;font-weight:400;font-family:var(--mono);color:var(--text-muted)}
 .bm-val.pick-home{color:var(--win)}.bm-val.pick-draw{color:var(--draw)}.bm-val.pick-away{color:var(--loss)}
 
+/* Pick dropdown — ghost style, looks like plain text with subtle arrow */
+.pick-select{
+  width:100%;padding:0;border-radius:0;
+  background:transparent;border:none;
+  color:var(--text-muted);font-size:12px;font-weight:600;
+  font-family:var(--mono);cursor:pointer;outline:none;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4' viewBox='0 0 7 4'%3E%3Cpath d='M1 1l2.5 2 2.5-2' stroke='%2360607a' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 0 center;
+  padding-right:12px;
+}
+.pick-select:focus{outline:none;box-shadow:none}
+.pick-select.pick-home{color:var(--win)}
+.pick-select.pick-draw{color:var(--draw)}
+.pick-select.pick-away{color:var(--loss)}
+.pick-select.pick-over{color:var(--win)}
+.pick-select.pick-btts{color:var(--win)}
+
 /* Editable odds — click to edit inline */
 .odds-edit{
   display:inline-flex;align-items:center;gap:5px;cursor:pointer;
@@ -543,6 +561,28 @@ function oddsKeydown(e,id){
 }
 
 
+// Delegated change handler for pick select — fires when user picks an option
+document.addEventListener('DOMContentLoaded', function(){
+  var list = document.getElementById('betsList');
+  if(list){
+    list.addEventListener('change', function(e){
+      var sel = e.target.closest('.pick-select');
+      if(!sel) return;
+      var id  = sel.getAttribute('data-bet-id');
+      var key = sel.value;
+      if(id && key) changePick(id, key);
+    });
+  }
+});
+
+function changePick(id, newPick){
+  const idx = allBets.findIndex(b => b.id === id);
+  if(idx < 0) return;
+  allBets[idx].pick = newPick;
+  save();
+  toast('Pick changed to ' + newPick);
+}
+
 function pickClass(pick){
   if(!pick)return'';
   const p=pick.toLowerCase();
@@ -553,6 +593,43 @@ function pickClass(pick){
 
 function statusIcon(s){
   return s==='won'?'✓':s==='lost'?'✗':s==='draw'?'½':'⏳';
+}
+
+function pickSelectClass(pick){
+  if(!pick) return '';
+  var p = pick.toLowerCase();
+  if(p.includes('home'))  return 'pick-home';
+  if(p.includes('away'))  return 'pick-away';
+  if(p.includes('draw'))  return 'pick-draw';
+  if(p.includes('over') || p.includes('under')) return 'pick-over';
+  if(p.includes('btts'))  return 'pick-btts';
+  return '';
+}
+
+function renderPickSelect(b){
+  var opts = getAiOptions(b);
+  // No AI options — show static text
+  if(!opts.length){
+    var cls = pickSelectClass(b.pick);
+    return '<span class="bm-val ' + cls + '">' + (b.pick||'—') + '</span>';
+  }
+  // Build a <select> with only AI-approved options
+  var selectCls = pickSelectClass(b.pick);
+  var options = opts.map(function(o){
+    var sel = b.pick === o.key ? ' selected' : '';
+    return '<option value="' + o.key.replace(/"/g,'&quot;') + '"' + sel + '>' + o.label + '</option>';
+  }).join('');
+  return '<select class="pick-select ' + selectCls + '" data-bet-id="' + b.id + '">' + options + '</select>';
+}
+
+function getAiOptions(b){
+  var opts=[];
+  if(b.predProbHome!=null&&b.predProbHome>=50) opts.push({label:'Home Win', key:'Home Win'});
+  if(b.predProbDraw!=null&&b.predProbDraw>=50) opts.push({label:'Draw',     key:'Draw'});
+  if(b.predProbAway!=null&&b.predProbAway>=50) opts.push({label:'Away Win', key:'Away Win'});
+  if(b.predOver25!=null&&b.predOver25>=50)     opts.push({label:'Over 2.5', key:'Over 2.5'});
+  if(b.predBttsYes!=null&&b.predBttsYes>=50)  opts.push({label:'BTTS Yes', key:'BTTS Yes'});
+  return opts;
 }
 
 function render(){
@@ -614,7 +691,7 @@ function render(){
           </div>
           <div class="bm-item">
             <span class="bm-label">Pick</span>
-            <span class="bm-val ${pc}">${b.pick||'—'}</span>
+            ${renderPickSelect(b)}
           </div>
           <div class="bm-item">
             <span class="bm-label">Odds</span>
