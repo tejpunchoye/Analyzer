@@ -551,6 +551,18 @@
           0 0 18px rgba(255, 107, 107, 0.25);
       }
 
+
+      /* Low-confidence cards (< 3 stars, top prediction < 50%) — de-emphasised */
+      .fixture-card.low-confidence {
+        opacity: 0.62;
+        filter: saturate(0.6);
+      }
+      .fixture-card.low-confidence:hover {
+        opacity: 0.85;
+        filter: saturate(0.85);
+        transition: opacity .2s, filter .2s;
+      }
+
       .fixture-top {
         display: flex;
         align-items: center;
@@ -721,10 +733,10 @@
         text-transform: uppercase; color: var(--text-dim); font-family: var(--sans);
         margin-right: 1px;
       }
-      .market-badge.over  { background: var(--win-dim);  color: var(--win);  border-color: rgba(61,220,151,.3); }
-      .market-badge.under { background: var(--loss-dim); color: var(--loss); border-color: rgba(255,107,107,.3); }
-      .market-badge.btts-yes { background: var(--win-dim);  color: var(--win);  border-color: rgba(61,220,151,.3); }
-      .market-badge.btts-no  { background: var(--loss-dim); color: var(--loss); border-color: rgba(255,107,107,.3); }
+      .market-badge.over,
+      .market-badge.under,
+      .market-badge.btts-yes,
+      .market-badge.btts-no,
       .market-badge.neutral  { background: var(--surface2); color: var(--text-muted); }
       .market-low-sample { font-size: 9.5px; color: var(--text-dim); font-style: italic; }
 
@@ -2492,8 +2504,9 @@
 
             const slipId = `${match.homeTeam.id}_${match.awayTeam.id}_${currentGW}_${currentLeague}`;
             const alreadyAdded = isInSlip(slipId);
+            const lowConf = topProb < 50 ? 'low-confidence' : '';
             return `
-    <div class="fixture-card pred-${outcome} ${resultCardCls}" onclick="openDetail(${i})">
+    <div class="fixture-card pred-${outcome} ${resultCardCls} ${lowConf}" onclick="openDetail(${i})">
       <div class="fixture-top">
         <div class="star-rating" title="${topProb}% confidence">${stars}</div>
         <div class="teams-row">
@@ -2526,8 +2539,8 @@
       ${(() => {
         const gm = prediction.goalMarkets;
         if (!gm || gm.over25 === null) return '';
-        const overCls  = gm.over25 >= 55 ? 'over' : gm.over25 <= 45 ? 'under' : 'neutral';
-        const bttsCls  = gm.btts   >= 55 ? 'btts-yes' : gm.btts <= 45 ? 'btts-no' : 'neutral';
+        const overCls  = 'neutral';
+        const bttsCls  = 'neutral';
         const overLabel  = gm.over25 >= 50 ? 'Over 2.5' : 'Under 2.5';
         const bttsLabel  = gm.btts   >= 50 ? 'BTTS Yes' : 'BTTS No';
         const warn = gm.lowSample ? '<span class="market-low-sample">*low sample</span>' : '';
@@ -2745,10 +2758,10 @@
       const warn = gm.lowSample
         ? `<div style="font-size:10.5px;color:var(--draw);margin-top:8px">⚠ Low sample size (&lt;8 games) — probabilities will improve as the season progresses.</div>`
         : '';
-      const over25Cls  = gm.over25 >= 55 ? 'var(--win)'  : gm.over25 <= 45 ? 'var(--loss)' : 'var(--text-muted)';
-      const under25Cls = gm.over25 >= 55 ? 'var(--loss)' : gm.over25 <= 45 ? 'var(--win)'  : 'var(--text-muted)';
-      const bttsCls    = gm.btts   >= 55 ? 'var(--win)'  : gm.btts   <= 45 ? 'var(--loss)' : 'var(--text-muted)';
-      const noBttsCls  = gm.btts   >= 55 ? 'var(--loss)' : gm.btts   <= 45 ? 'var(--win)'  : 'var(--text-muted)';
+      const over25Cls  = 'var(--text-muted)';
+      const under25Cls = 'var(--text-muted)';
+      const bttsCls    = 'var(--text-muted)';
+      const noBttsCls  = 'var(--text-muted)';
       return `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
           <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px 15px">
