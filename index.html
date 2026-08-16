@@ -4022,6 +4022,8 @@
           Object.keys(predictionCache).forEach(k => delete predictionCache[k]);
           Object.keys(autoGwCache).forEach(k => delete autoGwCache[k]);
           Object.keys(leagueReadyState).forEach(k => leagueReadyState[k] = 'idle');
+          // Reset currentGW so each league auto-detects its own matchday
+          if (!newGw) currentGW = null;
           currentLeague = null;
           try {
             sessionStorage.removeItem(SESSION_CACHE_KEY);
@@ -4037,8 +4039,11 @@
         preloadPaused  = false;
         renderLeagueDropdown();
 
-        // Start loading — only uncached selected leagues will actually hit the API
-        startSequentialPreload(currentGW);
+        // Pass only the explicitly typed GW override.
+        // If blank, each league auto-detects its own current matchday independently.
+        // NEVER pass currentGW here — it may be stale from a previous load and would
+        // force the wrong gameweek onto every league.
+        startSequentialPreload(newGw);
       }
 
       function dismissPicker() {
