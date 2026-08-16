@@ -552,6 +552,12 @@
       }
 
 
+      /* Subtle market highlight — O/U or BTTS above 55% */
+      .fixture-card.market-highlight {
+        border-color: rgba(124,116,255,0.22);
+        background: linear-gradient(135deg, var(--surface) 0%, rgba(124,116,255,0.04) 100%);
+      }
+
       /* Low-confidence cards (< 3 stars, top prediction < 50%) — de-emphasised */
       .fixture-card.low-confidence {
         opacity: 0.62;
@@ -1679,21 +1685,24 @@
         </div>
 
         <div>
-          <div class="section-header">
+          <div class="section-header" style="flex-wrap:wrap;gap:8px">
             <div class="section-title">Predictions</div>
             <div class="filter-tabs">
-              <div class="filter-tab active" onclick="setFilter(this, 'all')">
-                All
-              </div>
-              <div class="filter-tab" onclick="setFilter(this, 'home')">
-                Home
-              </div>
-              <div class="filter-tab" onclick="setFilter(this, 'draw')">
-                Draw
-              </div>
-              <div class="filter-tab" onclick="setFilter(this, 'away')">
-                Away
-              </div>
+              <div class="filter-tab active" onclick="setFilter(this, 'all')">All</div>
+              <div class="filter-tab" onclick="setFilter(this, 'home')">Home</div>
+              <div class="filter-tab" onclick="setFilter(this, 'draw')">Draw</div>
+              <div class="filter-tab" onclick="setFilter(this, 'away')">Away</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+            <span style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);flex-shrink:0">Sort</span>
+            <div class="filter-tabs">
+              <div class="filter-tab sort-tab active" onclick="setSort(this,'confidence')">Confidence</div>
+              <div class="filter-tab sort-tab" onclick="setSort(this,'over25')">O/U ↑</div>
+              <div class="filter-tab sort-tab" onclick="setSort(this,'under25')">U/O ↑</div>
+              <div class="filter-tab sort-tab" onclick="setSort(this,'bttsYes')">BTTS Yes ↑</div>
+              <div class="filter-tab sort-tab" onclick="setSort(this,'bttsNo')">BTTS No ↑</div>
+              <div class="filter-tab sort-tab" onclick="setSort(this,'date')">Date</div>
             </div>
           </div>
           <div class="fixtures-grid" id="fixturesGrid">
@@ -1757,7 +1766,7 @@
     <!-- ── Detail overlay ── -->
     <div class="detail-overlay" id="detailOverlay" onclick="closeDetail(event)">
       <div class="detail-panel" id="detailPanel">
-        <button class="detail-close" onclick="closeDetail()">✕</button>
+        <button class="detail-close" onclick="closeDetailForced(); history.back()">✕</button>
         <div id="detailContent"></div>
       </div>
     </div>
@@ -2064,14 +2073,16 @@
 
         const confidence = Math.max(probHome, probDraw, probAway);
 
+        // Double Chance = sum of two result probabilities
+        const dc1X = probHome + probDraw;   // Home Win or Draw
+        const dcX2 = probDraw + probAway;   // Draw or Away Win
+        const dc12 = probHome + probAway;   // Home Win or Away Win (no draw)
+
         return {
-          outcome,
-          confidence,
-          probHome,
-          probDraw,
-          probAway,
-          homeScore: hs,
-          awayScore: as_,
+          outcome, confidence,
+          probHome, probDraw, probAway,
+          homeScore: hs, awayScore: as_,
+          dc1X, dcX2, dc12,
         };
       }
 
@@ -2139,13 +2150,64 @@
         const pAwayScores = 1 - poissonProb(λa, 0); // P(away scores)
         const btts = Math.round(pHomeScoRes * pAwayScores * 100);
 
+        // Option A: Most likely scoreline via Poisson grid
+        const scoreA = mostLikelyScore(λh, λa);
+
+        // Option B: Rounded xG (simpler approximation for comparison)
+        const scoreB = {
+          home: Math.round(λh),
+          away: Math.round(λa),
+        };
+
+        // HT/FT: split expected goals 44% HT / 56% SH
+        const htft = computeHtFt(λh, λa);
+
         return {
           over25: Math.max(5, Math.min(95, over25)),
           btts:   Math.max(5, Math.min(95, btts)),
           xgHome: Math.round(λh * 10) / 10,
           xgAway: Math.round(λa * 10) / 10,
           lowSample: homeInfo.played < 8 || awayInfo.played < 8,
+          scoreA, scoreB, htft,
         };
+      }
+
+      // ── Option A: Most likely scoreline via Poisson 7×7 grid search ────
+      function mostLikelyScore(λh, λa) {
+        let bestProb = 0, bestH = 0, bestA = 0;
+        for (let h = 0; h <= 6; h++) {
+          for (let a = 0; a <= 6; a++) {
+            const p = poissonProb(λh, h) * poissonProb(λa, a);
+            if (p > bestProb) { bestProb = p; bestH = h; bestA = a; }
+          }
+        }
+        return { home: bestH, away: bestA, prob: Math.round(bestProb * 100) };
+      }
+
+      // ── HT/FT: 44% first-half split, Poisson 7⁴ grid (2401 iterations) ─
+      function computeHtFt(λh, λa) {
+        const S = 0.44; // empirical: ~44% of goals scored in first half
+        const λhHT = λh * S, λhSH = λh * (1 - S);
+        const λaHT = λa * S, λaSH = λa * (1 - S);
+        const r = { HH:0, HD:0, HA:0, DH:0, DD:0, DA:0, AH:0, AD:0, AA:0 };
+        for (let hi = 0; hi <= 6; hi++) {
+          for (let ai = 0; ai <= 6; ai++) {
+            const pHT = poissonProb(λhHT, hi) * poissonProb(λaHT, ai);
+            if (pHT < 0.00005) continue; // skip negligible combinations
+            for (let hs = 0; hs <= 6; hs++) {
+              for (let as_ = 0; as_ <= 6; as_++) {
+                const p = pHT * poissonProb(λhSH, hs) * poissonProb(λaSH, as_);
+                if (p < 0.000001) continue;
+                const hFT = hi + hs, aFT = ai + as_;
+                const htKey = (hi > ai ? 'H' : hi < ai ? 'A' : 'D')
+                            + (hFT > aFT ? 'H' : hFT < aFT ? 'A' : 'D');
+                r[htKey] += p;
+              }
+            }
+          }
+        }
+        Object.keys(r).forEach(k => { r[k] = Math.round(r[k] * 100); });
+        return r;
       }
 
       function buildVerdict(pred, homeShort, awayShort) {
@@ -2381,12 +2443,19 @@
     </div>`;
       }
 
+      let activeSort = 'confidence'; // default sort
+
       function setFilter(el, filter) {
-        document
-          .querySelectorAll(".filter-tab")
-          .forEach((t) => t.classList.remove("active"));
+        document.querySelectorAll(".filter-tab").forEach(t => t.classList.remove("active"));
         el.classList.add("active");
         activeFilter = filter;
+        renderFixtures();
+      }
+
+      function setSort(el, sort) {
+        document.querySelectorAll(".sort-tab").forEach(t => t.classList.remove("active"));
+        el.classList.add("active");
+        activeSort = sort;
         renderFixtures();
       }
 
@@ -2406,22 +2475,21 @@
           return;
         }
 
-        // Sort by descending win % of the predicted outcome so strongest
-        // predictions always appear first.
+        // Sort based on activeSort selection
+        const getTopProb = p => p.prediction.outcome === 'home' ? p.prediction.probHome
+          : p.prediction.outcome === 'away' ? p.prediction.probAway : p.prediction.probDraw;
+
         const toShow = [...pool].sort((a, b) => {
-          const aTop =
-            a.prediction.outcome === "home"
-              ? a.prediction.probHome
-              : a.prediction.outcome === "away"
-                ? a.prediction.probAway
-                : a.prediction.probDraw;
-          const bTop =
-            b.prediction.outcome === "home"
-              ? b.prediction.probHome
-              : b.prediction.outcome === "away"
-                ? b.prediction.probAway
-                : b.prediction.probDraw;
-          return bTop - aTop;
+          const gma = a.prediction.goalMarkets || {};
+          const gmb = b.prediction.goalMarkets || {};
+          switch (activeSort) {
+            case 'over25':   return (gmb.over25  ?? 0) - (gma.over25  ?? 0);
+            case 'under25':  return (gma.over25  ?? 100) - (gmb.over25 ?? 100); // lower over25 = higher under25
+            case 'bttsYes':  return (gmb.btts    ?? 0) - (gma.btts    ?? 0);
+            case 'bttsNo':   return (gma.btts    ?? 100) - (gmb.btts  ?? 100); // lower btts = higher bttsNo
+            case 'date':     return new Date(a.match.utcDate) - new Date(b.match.utcDate);
+            default:         return getTopProb(b) - getTopProb(a); // confidence
+          }
         });
 
         // Persist the sorted order — openDetail indexes into this
@@ -2505,8 +2573,12 @@
             const slipId = `${match.homeTeam.id}_${match.awayTeam.id}_${currentGW}_${currentLeague}`;
             const alreadyAdded = isInSlip(slipId);
             const lowConf = topProb < 50 ? 'low-confidence' : '';
+            const gm = prediction.goalMarkets || {};
+            const hasMarketEdge = (gm.over25 != null && (gm.over25 > 55 || (100 - gm.over25) > 55))
+                                || (gm.btts   != null && (gm.btts   > 55 || (100 - gm.btts)   > 55));
+            const mktHl = (!lowConf && hasMarketEdge) ? 'market-highlight' : '';
             return `
-    <div class="fixture-card pred-${outcome} ${resultCardCls} ${lowConf}" onclick="openDetail(${i})">
+    <div class="fixture-card pred-${outcome} ${resultCardCls} ${lowConf} ${mktHl}" onclick="openDetail(${i})">
       <div class="fixture-top">
         <div class="star-rating" title="${topProb}% confidence">${stars}</div>
         <div class="teams-row">
@@ -2539,16 +2611,29 @@
       ${(() => {
         const gm = prediction.goalMarkets;
         if (!gm || gm.over25 === null) return '';
-        const overCls  = 'neutral';
-        const bttsCls  = 'neutral';
-        const overLabel  = gm.over25 >= 50 ? 'Over 2.5' : 'Under 2.5';
-        const bttsLabel  = gm.btts   >= 50 ? 'BTTS Yes' : 'BTTS No';
+        const overLabel = gm.over25 >= 50 ? 'Over 2.5' : 'Under 2.5';
+        const bttsLabel = gm.btts   >= 50 ? 'BTTS Yes' : 'BTTS No';
         const warn = gm.lowSample ? '<span class="market-low-sample">*low sample</span>' : '';
+
+        // Best Double Chance
+        const dcMap = { '1X': prediction.dc1X, 'X2': prediction.dcX2, '12': prediction.dc12 };
+        const bestDC = Object.entries(dcMap).sort(([,a],[,b]) => b - a)[0];
+
+        // Top HT/FT outcome
+        const htftLabels = { HH:'H/H', HD:'H/D', HA:'H/A', DH:'D/H', DD:'D/D', DA:'D/A', AH:'A/H', AD:'A/D', AA:'A/A' };
+        const topHtft = gm.htft ? Object.entries(gm.htft).sort(([,a],[,b]) => b - a)[0] : null;
+
         return `<div class="market-row">
-          <span class="market-badge ${overCls}"><span class="market-badge-label">O/U</span>${overLabel} ${gm.over25}%</span>
-          <span class="market-badge ${bttsCls}"><span class="market-badge-label">BTTS</span>${bttsLabel} ${gm.btts}%</span>
+          <span class="market-badge neutral"><span class="market-badge-label">O/U</span>${overLabel} ${gm.over25}%</span>
+          <span class="market-badge neutral"><span class="market-badge-label">BTTS</span>${bttsLabel} ${gm.btts}%</span>
           <span class="market-badge neutral"><span class="market-badge-label">xG</span>${gm.xgHome}–${gm.xgAway}</span>
           ${warn}
+        </div>
+        <div class="market-row" style="margin-top:5px">
+          ${gm.scoreA ? `<span class="market-badge neutral" title="Option A: Most likely scoreline via Poisson grid search"><span class="market-badge-label">A</span>${gm.scoreA.home}–${gm.scoreA.away} <span style="opacity:.65;font-size:9px">${gm.scoreA.prob}%</span></span>` : ''}
+          ${gm.scoreB ? `<span class="market-badge neutral" title="Option B: Rounded expected goals"><span class="market-badge-label">B</span>${gm.scoreB.home}–${gm.scoreB.away}</span>` : ''}
+          ${bestDC ? `<span class="market-badge neutral" title="Best double chance"><span class="market-badge-label">DC</span>${bestDC[0]} ${bestDC[1]}%</span>` : ''}
+          ${topHtft ? `<span class="market-badge neutral" title="Most likely HT/FT result"><span class="market-badge-label">HT/FT</span>${htftLabels[topHtft[0]]} ${topHtft[1]}%</span>` : ''}
         </div>`;
       })()}
       <div class="fixture-bottom">
@@ -2564,7 +2649,15 @@
       }
 
       function openDetail(idx) {
-        showDetail(displayedPredictions[idx]);
+        const p = displayedPredictions[idx];
+        if (!p) return;
+        // showDetail renders content AND opens the overlay
+        showDetail(p);
+        // Push history state so back button closes the panel
+        history.pushState({ nav: 'detail' }, '');
+        // Hide the 3-dots drawer trigger while detail is open
+        const trigger = document.querySelector('.drawer-trigger');
+        if (trigger) trigger.style.display = 'none';
       }
 
       function showDetail(p) {
@@ -2805,6 +2898,84 @@
     })()}
 
     ${(() => {
+      // ── Double Chance section ────────────────────────────────────────────
+      const { dc1X, dcX2, dc12 } = p.prediction || {};
+      if (dc1X == null) return '';
+      const best = Math.max(dc1X, dcX2, dc12);
+      const dcRow = (label, desc, val) => {
+        const isBest = val === best;
+        return `<div style="display:flex;align-items:center;gap:12px;padding:9px 14px;border-radius:8px;background:${isBest ? 'var(--accent-dim)' : 'var(--surface2)'};border:1px solid ${isBest ? 'var(--accent-glow)' : 'var(--border)'};margin-bottom:6px">
+          <div style="flex:1">
+            <span style="font-size:12.5px;font-weight:700;color:${isBest ? 'var(--accent)' : 'var(--text)'}">${label}</span>
+            <span style="font-size:11px;color:var(--text-dim);margin-left:8px">${desc}</span>
+          </div>
+          <span style="font-size:15px;font-weight:800;font-family:var(--mono);color:${isBest ? 'var(--accent)' : 'var(--text-muted)'}">${val}%</span>
+        </div>`;
+      };
+      return `
+        <div class="section-subtitle">Double Chance</div>
+        ${dcRow('1X', 'Home Win or Draw', dc1X)}
+        ${dcRow('X2', 'Draw or Away Win', dcX2)}
+        ${dcRow('12', 'Home Win or Away Win', dc12)}`;
+    })()}
+
+    ${(() => {
+      // ── Expected Scoreline section (Option A and B) ──────────────────────
+      const gm = p.prediction?.goalMarkets;
+      if (!gm || !gm.scoreA) return '';
+      return `
+        <div class="section-subtitle">Expected scoreline</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px 16px;text-align:center">
+            <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px">Option A — Poisson grid</div>
+            <div style="font-size:28px;font-weight:800;font-family:var(--mono);color:var(--text);letter-spacing:2px">${gm.scoreA.home}–${gm.scoreA.away}</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:6px">Most likely scoreline · ${gm.scoreA.prob}% probability</div>
+          </div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px 16px;text-align:center">
+            <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px">Option B — Rounded xG</div>
+            <div style="font-size:28px;font-weight:800;font-family:var(--mono);color:var(--text);letter-spacing:2px">${gm.scoreB.home}–${gm.scoreB.away}</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:6px">xG ${gm.xgHome} vs ${gm.xgAway}, rounded</div>
+          </div>
+        </div>`;
+    })()}
+
+    ${(() => {
+      // ── HT/FT section ───────────────────────────────────────────────────
+      const gm = p.prediction?.goalMarkets;
+      if (!gm || !gm.htft) return '';
+      const labels = {
+        HH:'H / H', HD:'H / D', HA:'H / A',
+        DH:'D / H', DD:'D / D', DA:'D / A',
+        AH:'A / H', AD:'A / D', AA:'A / A'
+      };
+      const descs = {
+        HH:'Home leads at HT & wins', HD:'Home leads at HT, draws FT',
+        HA:'Home leads at HT, away wins', DH:'Draw at HT, home wins',
+        DD:'Draw at both HT & FT', DA:'Draw at HT, away wins',
+        AH:'Away leads at HT, home wins', AD:'Away leads at HT, draws FT',
+        AA:'Away leads at HT & wins'
+      };
+      const sorted = Object.entries(gm.htft).sort(([,a],[,b]) => b - a);
+      const topProb = sorted[0][1];
+      return `
+        <div class="section-subtitle">Half Time / Full Time</div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          ${sorted.map(([k, v]) => {
+            const isTop = v === topProb;
+            const barW = topProb > 0 ? Math.round(v / topProb * 100) : 0;
+            return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:${isTop ? 'var(--accent-dim)' : 'var(--surface2)'};border:1px solid ${isTop ? 'var(--accent-glow)' : 'var(--border)'}">
+              <span style="font-size:12.5px;font-weight:800;font-family:var(--mono);color:${isTop ? 'var(--accent)' : 'var(--text)'};width:38px;flex-shrink:0">${labels[k]}</span>
+              <span style="font-size:11px;color:var(--text-dim);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${descs[k]}</span>
+              <div style="width:80px;height:4px;background:var(--surface3);border-radius:2px;flex-shrink:0">
+                <div style="height:100%;width:${barW}%;background:${isTop ? 'var(--accent)' : 'var(--border-strong)'};border-radius:2px"></div>
+              </div>
+              <span style="font-size:13px;font-weight:700;font-family:var(--mono);color:${isTop ? 'var(--accent)' : 'var(--text-muted)'};width:32px;text-align:right;flex-shrink:0">${v}%</span>
+            </div>`;
+          }).join('')}
+        </div>`;
+    })()}
+
+    ${(() => {
       const noData = (!homeInfo || homeInfo.played === 0) && (!awayInfo || awayInfo.played === 0);
       if (noData) return `
         <div style="margin-top:16px;padding:14px 16px;border-radius:9px;background:rgba(255,201,77,0.07);border:1px solid rgba(255,201,77,0.25)">
@@ -2849,6 +3020,16 @@
         if (e && e.target !== document.getElementById("detailOverlay")) return;
         document.getElementById("detailOverlay").classList.remove("open");
         document.body.style.overflow = "";
+        // Restore 3-dots trigger
+        const trigger = document.querySelector('.drawer-trigger');
+        if (trigger) trigger.style.display = '';
+      }
+
+      function closeDetailForced() {
+        document.getElementById("detailOverlay").classList.remove("open");
+        document.body.style.overflow = "";
+        const trigger = document.querySelector('.drawer-trigger');
+        if (trigger) trigger.style.display = '';
       }
 
       // ── League dropdown ──
@@ -3514,6 +3695,15 @@
           predXgHome:  gm.xgHome  ?? null,
           predXgAway:  gm.xgAway  ?? null,
           predLowSample: gm.lowSample ?? false,
+          // Double Chance
+          predDc1X: prediction.dc1X ?? null,
+          predDcX2: prediction.dcX2 ?? null,
+          predDc12: prediction.dc12 ?? null,
+          // Expected scorelines
+          predScoreA: gm.scoreA ?? null,
+          predScoreB: gm.scoreB ?? null,
+          // HT/FT
+          predHtft: gm.htft ?? null,
         };
         const bets = loadSlip();
         bets.unshift(bet);
@@ -3607,8 +3797,12 @@
       // ── History (back button) handler ─────────────────────────────────
       window.addEventListener('popstate', (e) => {
         const nav = e.state?.nav;
+        // Detail panel takes priority
+        if (nav === 'detail' || document.getElementById('detailOverlay')?.classList.contains('open')) {
+          closeDetailForced();
+          return;
+        }
         if (_navLayer === 'picker-from-drawer') {
-          // Picker was opened from drawer — close picker, reopen drawer
           _dismissPickerSilent();
           _navLayer = null;
           openBottomDrawer();

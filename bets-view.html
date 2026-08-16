@@ -372,6 +372,7 @@ button{cursor:pointer;border:none;background:none;font-family:var(--sans);color:
     <div class="summary-row"><span class="summary-label">Draw</span><span class="sv" style="color:var(--draw)" id="mDraw">0</span></div>
     <div class="summary-row"><span class="summary-label">Lost</span><span class="sv lost" id="mLost">0</span></div>
     <div class="summary-row"><span class="summary-label">Pending</span><span class="sv pending" id="mPending">0</span></div>
+    <button onclick="removeAll()" style="width:100%;margin-top:12px;padding:10px;border-radius:8px;background:none;border:1px solid var(--border);color:var(--text-dim);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s" onmouseover="this.style.borderColor='var(--loss)';this.style.color='var(--loss)';this.style.background='var(--loss-dim)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-dim)';this.style.background='none'">🗑 Remove all bets</button>
     <div class="drawer-section-label">Navigate</div>
     <div class="drawer-nav-links">
       <a href="index.html" class="drawer-nav-link">
@@ -629,6 +630,16 @@ function getAiOptions(b){
   if(b.predProbAway!=null&&b.predProbAway>=50) opts.push({label:'Away Win', key:'Away Win'});
   if(b.predOver25!=null&&b.predOver25>=50)     opts.push({label:'Over 2.5', key:'Over 2.5'});
   if(b.predBttsYes!=null&&b.predBttsYes>=50)  opts.push({label:'BTTS Yes', key:'BTTS Yes'});
+  // Double Chance
+  if(b.predDc1X!=null&&b.predDc1X>=50) opts.push({label:'1X (Home/Draw)', key:'DC 1X'});
+  if(b.predDcX2!=null&&b.predDcX2>=50) opts.push({label:'X2 (Draw/Away)', key:'DC X2'});
+  if(b.predDc12!=null&&b.predDc12>=50) opts.push({label:'12 (No Draw)',    key:'DC 12'});
+  // HT/FT — show top outcome if >= 25% (9-way market)
+  if(b.predHtft){
+    var htftLabels={HH:'H/H',HD:'H/D',HA:'H/A',DH:'D/H',DD:'D/D',DA:'D/A',AH:'A/H',AD:'A/D',AA:'A/A'};
+    var top=Object.entries(b.predHtft).sort(function(a,b){return b[1]-a[1];})[0];
+    if(top && top[1]>=25) opts.push({label:'HT/FT '+htftLabels[top[0]], key:'HTFT '+top[0]});
+  }
   return opts;
 }
 

@@ -161,6 +161,9 @@ a:hover{text-decoration:underline}
     <li><a href="#betslip"><span class="toc-num">07</span>Bet slip — picks, odds, and tracking</a></li>
     <li><a href="#limits"><span class="toc-num">08</span>Limitations and honest caveats</a></li>
     <li><a href="#glossary"><span class="toc-num">09</span>Glossary of terms</a></li>
+    <li><a href="#scoreline"><span class="toc-num">10</span>Expected scoreline — Option A &amp; B</a></li>
+    <li><a href="#doublechance"><span class="toc-num">11</span>Double Chance — 1X, X2, 12</a></li>
+    <li><a href="#htft"><span class="toc-num">12</span>Half Time / Full Time</a></li>
   </ul>
 </div>
 
@@ -285,6 +288,48 @@ won, drawn  = results so far
 <span class="kw">teamScore</span>  = max(2, min(98, rawScore))      <span class="cmt">← never 0 or 100</span></div>
   </div>
 
+
+  <p class="prose">Here are three real-world-style examples showing how different team situations produce different scores:</p>
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px">
+    <div style="padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim)">Team scoring examples — 20-team league (e.g. Premier League)</div>
+    <table class="data-table" style="margin-bottom:0">
+      <thead><tr><th>Team</th><th>Rank</th><th>P</th><th>W</th><th>D</th><th>posScore</th><th>winScore</th><th>drawScore</th><th>Final</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Man City</td>
+          <td style="color:var(--win)">#1</td><td>12</td><td>10</td><td>2</td>
+          <td>30 + (19/20)×50 = <strong style="color:var(--text)">77.5</strong></td>
+          <td>(10/12)×100 = <strong style="color:var(--text)">83.3</strong></td>
+          <td>(2/12)×100 = <strong style="color:var(--text)">16.7</strong></td>
+          <td style="color:var(--win);font-weight:800;font-family:var(--mono)">79.5</td>
+        </tr>
+        <tr>
+          <td>Chelsea</td>
+          <td style="color:var(--draw)">#8</td><td>12</td><td>5</td><td>4</td>
+          <td>30 + (12/20)×50 = <strong style="color:var(--text)">60.0</strong></td>
+          <td>(5/12)×100 = <strong style="color:var(--text)">41.7</strong></td>
+          <td>(4/12)×100 = <strong style="color:var(--text)">33.3</strong></td>
+          <td style="color:var(--draw);font-weight:800;font-family:var(--mono)">52.9</td>
+        </tr>
+        <tr>
+          <td>Southampton</td>
+          <td style="color:var(--loss)">#19</td><td>12</td><td>1</td><td>2</td>
+          <td>30 + (1/20)×50 = <strong style="color:var(--text)">32.5</strong></td>
+          <td>(1/12)×100 = <strong style="color:var(--text)">8.3</strong></td>
+          <td>(2/12)×100 = <strong style="color:var(--text)">16.7</strong></td>
+          <td style="color:var(--loss);font-weight:800;font-family:var(--mono)">24.6</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-title">Reading the numbers</div>
+    <div class="callout-body">Man City (score 79.5) vs Southampton (score 24.6) is an enormous 55-point gap — the model will give Man City a very high win probability. Chelsea (52.9) vs Southampton (24.6) is a 28-point gap — a clear lean towards Chelsea but Southampton can still win or draw. Two teams with scores within 5–10 points of each other will produce near-50/50 probabilities where the draw is most likely.</div>
+  </div>
+
+  <p class="prose"><strong>Interesting edge case:</strong> A team ranked #5 who has mostly drawn their games will score differently from a team also ranked #5 who has won and lost alternately. The draw-rate component (10%) captures this — the high-draw team is slightly harder to beat and gets a small score bump. This matters in markets like Over/Under 2.5 where draw-heavy teams are more likely to produce low-scoring games.</p>
   <div class="callout warning">
     <div class="callout-title">Early season accuracy</div>
     <div class="callout-body">When fewer than 5 games have been played, all three components are noisy. A team that won their first two games by luck can outscore a genuinely stronger team. Treat predictions in the first 4–6 gameweeks of any season as indicative only. The model becomes more reliable around GW8–10 when standings begin to reflect true quality.</div>
@@ -448,6 +493,58 @@ won, drawn  = results so far
            clamped to [<span class="val">0.2</span>, <span class="val">4.5</span>]</div>
   </div>
 
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px">
+    <div style="padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim)">Three contrasting fixtures — full worked calculation</div>
+    <div style="padding:18px 20px;display:flex;flex-direction:column;gap:20px">
+
+      <div>
+        <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:8px">
+          <span style="background:var(--win-dim);color:var(--win);padding:2px 8px;border-radius:4px;font-size:10px">Clear Favourite</span>
+          Liverpool (#2, score 76) vs Burnley (#18, score 28)
+        </div>
+        <div style="font-family:var(--mono);font-size:12px;color:var(--text-muted);line-height:2;background:var(--surface2);padding:12px 14px;border-radius:8px;margin-bottom:8px">
+          homeAdj = 76 + 8 = <span style="color:var(--win)">84</span>  ·  awayAdj = <span style="color:var(--loss)">28</span>  ·  gap = 56<br>
+          P(Draw) = 0.32 − 56×0.006 = −0.016 → clamped to <span style="color:var(--draw)">14%</span><br>
+          P(Home) = (84/112) × 86% = <span style="color:var(--win)">64%</span>  ·  P(Away) = (28/112) × 86% = <span style="color:var(--loss)">22%</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)">→ 5-star prediction. Draw is at its minimum. Liverpool dominant at home against a relegation side.</div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:20px">
+        <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:8px">
+          <span style="background:var(--draw-dim);color:var(--draw);padding:2px 8px;border-radius:4px;font-size:10px">Toss-Up</span>
+          Arsenal (#4, score 72) vs Tottenham (#6, score 68)
+        </div>
+        <div style="font-family:var(--mono);font-size:12px;color:var(--text-muted);line-height:2;background:var(--surface2);padding:12px 14px;border-radius:8px;margin-bottom:8px">
+          homeAdj = 72 + 8 = <span style="color:var(--win)">80</span>  ·  awayAdj = <span style="color:var(--loss)">68</span>  ·  gap = 12<br>
+          P(Draw) = 0.32 − 12×0.006 = <span style="color:var(--draw)">24.8%</span><br>
+          P(Home) = (80/148) × 75.2% = <span style="color:var(--win)">40.6%</span>  ·  P(Away) = (68/148) × 75.2% = <span style="color:var(--loss)">34.6%</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)">→ 2-star prediction. Home win narrowly leads but it's a genuine three-way contest. Home advantage is the deciding factor here.</div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:20px">
+        <div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:8px">
+          <span style="background:var(--loss-dim);color:var(--loss);padding:2px 8px;border-radius:4px;font-size:10px">Away Favourite</span>
+          Luton (#16, score 34) vs Man City (#1, score 82)
+        </div>
+        <div style="font-family:var(--mono);font-size:12px;color:var(--text-muted);line-height:2;background:var(--surface2);padding:12px 14px;border-radius:8px;margin-bottom:8px">
+          homeAdj = 34 + 8 = <span style="color:var(--win)">42</span>  ·  awayAdj = <span style="color:var(--loss)">82</span>  ·  gap = 40<br>
+          P(Draw) = 0.32 − 40×0.006 = <span style="color:var(--draw)">8%</span> → clamped to <span style="color:var(--draw)">14%</span><br>
+          P(Home) = (42/124) × 86% = <span style="color:var(--text)">29.1%</span>  ·  P(Away) = (82/124) × 86% = <span style="color:var(--loss)">56.9%</span>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)">→ 3-star prediction. Even with home advantage Luton can't overcome Man City's quality gap. Away Win is the model's pick.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-title">Why the draw floor matters</div>
+    <div class="callout-body">Notice that in the Liverpool vs Burnley and Luton vs Man City examples, the draw formula produces a value below 14%, which gets clamped upward. This is intentional — in real football, even the biggest mismatches produce draws around 8–12% of the time. A 0% draw probability would be statistically dishonest and would also make the result probabilities less accurate by over-concentrating mass on one outcome.</div>
+  </div>
+
   <p class="prose">Continuing the Brighton vs Man United example, suppose Brighton average 2.1 goals scored and 1.0 conceded; Man United average 1.4 scored and 1.8 conceded:</p>
 
   <div class="market-grid">
@@ -477,6 +574,105 @@ won, drawn  = results so far
     </div>
   </div>
 
+
+  <p class="prose">Here is a complete step-by-step example of the Poisson goal model applied to a specific match:</p>
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px">
+    <div style="padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim)">Full goal market example — Newcastle vs Wolves, GW12</div>
+    <div style="padding:18px 20px;font-size:12.5px;color:var(--text-muted);line-height:1.9">
+
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Step 1 — Raw data from standings</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="background:var(--surface2);padding:12px 14px;border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:800;color:var(--text);margin-bottom:6px">Newcastle (Home)</div>
+            <div style="font-family:var(--mono);font-size:12px;line-height:2">
+              Played: 12<br>GF: 22 → avg <span style="color:var(--win)">1.83</span>/game<br>GA: 14 → avg <span style="color:var(--loss)">1.17</span>/game
+            </div>
+          </div>
+          <div style="background:var(--surface2);padding:12px 14px;border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:800;color:var(--text);margin-bottom:6px">Wolves (Away)</div>
+            <div style="font-family:var(--mono);font-size:12px;line-height:2">
+              Played: 12<br>GF: 13 → avg <span style="color:var(--win)">1.08</span>/game<br>GA: 18 → avg <span style="color:var(--loss)">1.50</span>/game
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Step 2 — League average (proxy from these two teams)</div>
+        <div style="background:var(--surface2);padding:12px 14px;border-radius:8px;border:1px solid var(--border);font-family:var(--mono);font-size:12px;line-height:2">
+          leagueAvgScored   = (1.83 + 1.08) / 2 = <span style="color:var(--accent)">1.455</span>/game<br>
+          leagueAvgConceded = (1.17 + 1.50) / 2 = <span style="color:var(--accent)">1.335</span>/game
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Step 3 — Attack and defence strengths</div>
+        <div style="background:var(--surface2);padding:12px 14px;border-radius:8px;border:1px solid var(--border);font-family:var(--mono);font-size:12px;line-height:2">
+          Newcastle attackStr  = 1.83 / 1.455 = <span style="color:var(--win)">1.26</span>  (26% above avg)<br>
+          Newcastle defenceStr = 1.17 / 1.335 = <span style="color:var(--win)">0.88</span>  (12% tighter than avg)<br>
+          Wolves attackStr     = 1.08 / 1.455 = <span style="color:var(--draw)">0.74</span>  (26% below avg)<br>
+          Wolves defenceStr    = 1.50 / 1.335 = <span style="color:var(--loss)">1.12</span>  (12% weaker than avg)
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Step 4 — Expected goals (xG) per team</div>
+        <div style="background:var(--surface2);padding:12px 14px;border-radius:8px;border:1px solid var(--border);font-family:var(--mono);font-size:12px;line-height:2">
+          λ(Newcastle) = 1.26 × 1.12 × 1.455 × 1.10 = <span style="color:var(--win)">2.26</span> goals expected<br>
+          <span style="color:var(--text-dim)">           Newcastle attack × Wolves defence weakness × league avg × home boost</span><br><br>
+          λ(Wolves)    = 0.74 × 0.88 × 1.455       = <span style="color:var(--draw)">0.95</span> goals expected<br>
+          <span style="color:var(--text-dim)">           Wolves attack × Newcastle defence strength × league avg</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Step 5 — Poisson probabilities for each team</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="background:var(--surface2);padding:12px 14px;border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px">Newcastle (λ=2.26)</div>
+            <div style="font-family:var(--mono);font-size:11.5px;line-height:2;color:var(--text-muted)">
+              P(0) = e⁻²·²⁶ = <span style="color:var(--text)">10.4%</span><br>
+              P(1) = 2.26 × 10.4% = <span style="color:var(--text)">23.5%</span><br>
+              P(2) = 2.26²/2 × 10.4% = <span style="color:var(--text)">26.6%</span><br>
+              P(3+) = <span style="color:var(--win)">39.5%</span>
+            </div>
+          </div>
+          <div style="background:var(--surface2);padding:12px 14px;border-radius:8px;border:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px">Wolves (λ=0.95)</div>
+            <div style="font-family:var(--mono);font-size:11.5px;line-height:2;color:var(--text-muted)">
+              P(0) = e⁻⁰·⁹⁵ = <span style="color:var(--text)">38.7%</span><br>
+              P(1) = 0.95 × 38.7% = <span style="color:var(--text)">36.7%</span><br>
+              P(2) = 0.95²/2 × 38.7% = <span style="color:var(--text)">17.4%</span><br>
+              P(3+) = <span style="color:var(--loss)">7.2%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Step 6 — Over/Under 2.5 calculation</div>
+        <div style="background:var(--surface2);padding:12px 14px;border-radius:8px;border:1px solid var(--border);font-family:var(--mono);font-size:12px;line-height:2">
+          P(total ≤ 2) = P(0-0) + P(1-0) + P(0-1) + P(2-0) + P(1-1) + P(0-2)<br>
+          = 10.4%×38.7% + 23.5%×38.7% + 10.4%×36.7% + ...<br>
+          = <span style="color:var(--text)">4.0%</span> + <span style="color:var(--text)">9.1%</span> + <span style="color:var(--text)">3.8%</span> + <span style="color:var(--text)">4.6%</span> + <span style="color:var(--text)">8.6%</span> + <span style="color:var(--text)">1.8%</span> = <span style="color:var(--draw)">31.9%</span><br>
+          <br>
+          P(Over 2.5) = 1 − 31.9% = <span style="color:var(--win);font-weight:800">68%</span>  ✓ Over 2.5 is the prediction
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Step 7 — BTTS calculation</div>
+        <div style="background:var(--surface2);padding:12px 14px;border-radius:8px;border:1px solid var(--border);font-family:var(--mono);font-size:12px;line-height:2">
+          P(Newcastle scores) = 1 − P(0) = 1 − 10.4% = <span style="color:var(--win)">89.6%</span><br>
+          P(Wolves scores)    = 1 − P(0) = 1 − 38.7% = <span style="color:var(--draw)">61.3%</span><br>
+          P(BTTS Yes) = 89.6% × 61.3% = <span style="color:var(--win);font-weight:800">55%</span>  ✓ BTTS Yes is the prediction
+        </div>
+      </div>
+
+    </div>
+  </div>
   <div class="callout warning">
     <div class="callout-title">Low sample warning</div>
     <div class="callout-body">When either team has played fewer than 8 games, goal market predictions are flagged with a ⚠ low-sample warning on the card. The Poisson model needs a stable goals-per-game average to be meaningful. A team that scored 4 goals in their opening match will have an inflated attack strength that corrects itself over the following weeks. Always treat early-season goal markets with extra scepticism.</div>
@@ -508,6 +704,34 @@ won, drawn  = results so far
     <div class="callout-body">High confidence ratings (4–5 stars) do not mean the outcome is guaranteed. A 75% confidence means the model expects the result to be wrong 1 in 4 times. What high confidence does mean is that the model has found a statistically meaningful edge, which is exactly what you want when building a bet slip. Focus on 4–5 star picks, verify the odds make sense (implied probability should be below the model's probability), and keep stakes proportional to confidence.</div>
   </div>
 
+
+  <p class="prose">Here are two contrasting cards to show how star ratings translate to practical betting advice:</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+    <div style="background:var(--surface);border:1px solid rgba(61,220,151,.3);border-radius:10px;padding:16px 18px">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--win);margin-bottom:10px">5-star example</div>
+      <div style="font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:4px">Real Madrid vs Getafe</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px">La Liga · GW18</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <span style="background:var(--win-dim);color:var(--win);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700">H 81%</span>
+        <span style="padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;background:var(--surface2);color:var(--text-muted)">D 12%</span>
+        <span style="padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;background:var(--surface2);color:var(--text-muted)">A 7%</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Real Madrid rank #1 (score 84) vs Getafe rank #15 (score 29). The 55-point gap puts draw at its minimum floor (14%). Home win is the strong prediction.<br><br><strong style="color:var(--win)">Action:</strong> Check if bookmaker odds imply less than 81% (i.e. home odds above 1.23). If so, this is a positive-value bet.</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid rgba(255,201,77,.3);border-radius:10px;padding:16px 18px">
+      <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--draw);margin-bottom:10px">2-star example</div>
+      <div style="font-size:13.5px;font-weight:800;color:var(--text);margin-bottom:4px">Leicester vs West Ham</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px">Premier League · GW22</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <span style="background:var(--surface2);color:var(--text-muted);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700">H 40%</span>
+        <span style="background:var(--draw-dim);color:var(--draw);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700">D 28%</span>
+        <span style="padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;background:var(--surface2);color:var(--text-muted)">A 32%</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.6">Leicester rank #9 (score 57) vs West Ham rank #10 (score 55). Near-identical scores, home advantage tips it 40% home. All three outcomes are genuinely in play.<br><br><strong style="color:var(--draw)">Action:</strong> Avoid staking high on this match. Consider if the draw market (28%) looks mispriced — bookmakers often underprice draws in evenly-matched games.</div>
+    </div>
+  </div>
+
   <p class="prose">The card also shows three percentage pills: <strong>H / D / A</strong> for home, draw, and away win probability. These always sum to 100%. The highlighted pill (in the card's accent colour) is the predicted outcome. When a match is finished, the card glows <span style="color:var(--win);font-weight:700">green</span> if the prediction was correct or <span style="color:var(--loss);font-weight:700">red</span> if it was wrong.</p>
 
   <p class="prose">Below the percentage row you will see three badges: <strong>O/U</strong> (over/under 2.5 probability), <strong>BTTS</strong> (both teams to score), and <strong>xG</strong> (expected goals, e.g. "1.8–1.2" meaning home xG 1.8, away xG 1.2). These are colour-coded: green if the model favours that side of the market (≥55%), red if it disfavours it (≤45%), and grey if it's near 50/50.</p>
@@ -519,6 +743,42 @@ won, drawn  = results so far
   <div class="section-tag">07 · Bet Slip</div>
   <div class="section-heading">How the bet slip works</div>
   <div class="section-sub">Adding bets, changing picks, tracking results</div>
+
+
+  <p class="prose">Here is a concrete example of how the pick dropdown works in the bet slip:</p>
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:16px">
+    <div style="font-size:11px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px">Example — Napoli vs AC Milan added to bet slip</div>
+
+    <div style="font-size:12.5px;color:var(--text-muted);line-height:1.8;margin-bottom:14px">The model predicts: <strong style="color:var(--text)">Home Win 61% · Draw 18% · Away Win 21% · Over 2.5 58% · BTTS Yes 52%</strong></div>
+
+    <div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:800;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">AI-approved pick options (≥50%)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;background:var(--win-dim);color:var(--win);border:1px solid rgba(61,220,151,.3)">✓ Home Win</span>
+        <span style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent-glow)">Over 2.5</span>
+        <span style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;background:var(--surface2);color:var(--text-muted);border:1px solid var(--border)">BTTS Yes</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <div style="font-size:10px;font-weight:800;color:var(--loss);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Blocked options (below 50%)</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;opacity:0.4">
+        <span style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);text-decoration:line-through">Draw 18%</span>
+        <span style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);text-decoration:line-through">Away Win 21%</span>
+        <span style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);text-decoration:line-through">Under 2.5 42%</span>
+      </div>
+    </div>
+
+    <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text-muted);line-height:1.7">
+      <strong style="color:var(--text)">Scenario:</strong> You believe Napoli will win but the game might be tight and Milan have a good defensive record away from home. You agree with the home win prediction but aren't sure about goals. Since BTTS Yes has 52% model probability and is available in the dropdown, you can change your pick to "BTTS Yes" if you think the bookmaker's odds on that market are more appealing than the home win price.
+    </div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-title">Why block options below 50%?</div>
+    <div class="callout-body">The app is designed to keep you aligned with the model's analysis. If the AI thinks Away Win has only a 21% chance, offering it as a pick option would defeat the purpose of using a statistical model. You can still bet on Away Win with your bookmaker — the bet slip just won't record it as an AI-endorsed pick. This creates a natural discipline: your logged bets should only ever be outcomes the model considers likely.</div>
+  </div>
 
   <p class="prose">The bet slip is a personal tracking tool. It does not connect to any bookmaker and does not place real bets. Its purpose is to let you log which predictions you are acting on, record your odds, and track your results over time.</p>
 
@@ -619,6 +879,120 @@ won, drawn  = results so far
       <tr><td>SessionStorage</td><td>A browser feature that stores data for the duration of a browser tab session. Fixture AI uses it to cache prediction data so navigating between pages is instant. The cache clears when you close the tab or change the season.</td></tr>
     </tbody>
   </table>
+</div>
+
+
+<!-- 10 EXPECTED SCORELINE -->
+<div class="section" id="scoreline">
+  <div class="section-tag">10 · Expected Scoreline</div>
+  <div class="section-heading">Option A vs Option B — side by side</div>
+  <div class="section-sub">Two methods, same data, shown together for back-testing</div>
+
+  <p class="prose">Both options use the same λh and λa already computed by the Poisson goal model. No extra API calls are needed.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon">🎯</div>
+      <div class="card-title">Option A — Poisson grid search</div>
+      <div class="card-body">Evaluates all 49 combinations of home goals (0–6) × away goals (0–6). Returns the combination with the highest joint probability. Statistically the most rigorous method — the mode of the bivariate Poisson distribution. Displayed as <strong>A: 2–1 (10%)</strong> where 10% is the probability of that exact scoreline.</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">📐</div>
+      <div class="card-title">Option B — Rounded xG</div>
+      <div class="card-body">Simply rounds each team's expected goals: <code>round(λh) – round(λa)</code>. Faster to interpret but less accurate at low λ values because the Poisson distribution is right-skewed — at λ=1.8 the most probable count is 1, not 2. Displayed as <strong>B: 2–1</strong>.</div>
+    </div>
+  </div>
+
+  <div class="formula-wrap">
+    <div class="formula-bar">Option A — Poisson grid search</div>
+    <div class="formula-code"><span class="kw">P(home=h, away=a)</span> = Poisson(λh, h) × Poisson(λa, a)
+
+<span class="cmt">Loop h = 0..6, a = 0..6 (49 combinations)</span>
+<span class="kw">bestScore</span> = argmax P(home=h, away=a)
+
+<span class="cmt">Example: Newcastle (λh=2.26) vs Wolves (λa=0.95)</span>
+<span class="val">P(2–0)</span> = Poisson(2.26,2) × Poisson(0.95,0) = 26.6% × 38.7% = <span class="val">10.3%</span>  ← winner
+<span class="val">P(1–0)</span> = 23.5% × 38.7% = 9.1%
+<span class="val">P(2–1)</span> = 26.6% × 36.7% = 9.8%
+
+Predicted scoreline: <span class="val">2–0</span> (Option A)</div>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-title">Why show both?</div>
+    <div class="callout-body">Over many matches you can compare which method was closer to the actual result and decide which to trust. Option A is theoretically superior but Option B is faster to mentally verify. Showing both lets you back-test without committing to one model.</div>
+  </div>
+</div>
+
+<!-- 11 DOUBLE CHANCE -->
+<div class="section" id="doublechance">
+  <div class="section-tag">11 · Double Chance</div>
+  <div class="section-heading">Covering two outcomes in one bet</div>
+  <div class="section-sub">Zero extra computation — direct sums of the result market probabilities</div>
+
+  <p class="prose">Double chance lets you cover two of the three possible results. Because the result probabilities always sum to 100%, each double chance is simply the sum of two of the three values.</p>
+
+  <div class="formula-wrap">
+    <div class="formula-bar">Double chance formulae</div>
+    <div class="formula-code"><span class="kw">P(1X)</span> = P(Home Win) + P(Draw)     <span class="cmt">← Home team doesn't lose</span>
+<span class="kw">P(X2)</span> = P(Draw)    + P(Away Win) <span class="cmt">← Away team doesn't lose</span>
+<span class="kw">P(12)</span> = P(Home Win) + P(Away Win) <span class="cmt">← No draw — someone wins</span>
+
+<span class="cmt">Example: Brighton 49%, Draw 17%, Man United 34%</span>
+<span class="val">1X</span> = 49 + 17 = <span class="val">66%</span>
+<span class="val">X2</span> = 17 + 34 = <span class="val">51%</span>
+<span class="val">12</span> = 49 + 34 = <span class="val">83%</span>  ← highest, shown as best DC on card</div>
+  </div>
+
+  <p class="prose">The <strong>DC badge</strong> on each fixture card shows the highest of the three probabilities — always the 12 (no draw) market, since it eliminates one outcome entirely. The detail panel shows all three with a progress bar so you can compare which market the model rates most highly.</p>
+
+  <div class="callout warning">
+    <div class="callout-title">Value consideration</div>
+    <div class="callout-body">Bookmakers price DC markets at lower odds than straight result markets. A 12 bet at 83% predicted probability might only pay 1.15 (implying 87%) — negative value. DC is most useful when the bookmaker significantly underprices a specific combination relative to your model's probability.</div>
+  </div>
+</div>
+
+<!-- 12 HT/FT -->
+<div class="section" id="htft">
+  <div class="section-tag">12 · Half Time / Full Time</div>
+  <div class="section-heading">Predicting the result at both halves</div>
+  <div class="section-sub">Poisson model split 44% first half / 56% second half — zero extra API calls</div>
+
+  <p class="prose">HT/FT is a 9-outcome market: what is the result at half time (H, D, or A) combined with what it is at full time — giving combinations like H/H (home winning both halves), D/H (level at HT but home wins), and so on.</p>
+
+  <p class="prose">The model uses an empirical finding from aggregate European league data: <strong>approximately 44% of goals are scored in the first half</strong>, 56% in the second. This is applied to split each team's full-match expected goals λ into half-specific values:</p>
+
+  <div class="formula-wrap">
+    <div class="formula-bar">HT/FT calculation</div>
+    <div class="formula-code"><span class="cmt">── First half expected goals (44% split) ────────────────────────</span>
+<span class="kw">λh_HT</span> = λh × 0.44      <span class="kw">λa_HT</span> = λa × 0.44
+
+<span class="cmt">── Second half expected goals ────────────────────────────────────</span>
+<span class="kw">λh_SH</span> = λh × 0.56      <span class="kw">λa_SH</span> = λa × 0.56
+
+<span class="cmt">── Joint probability of any HT+FT scoreline combo ───────────────</span>
+<span class="kw">P(HT=i–j, FT=m–n)</span> = Poisson(λh_HT,i) × Poisson(λa_HT,j)
+                     × Poisson(λh_SH,m-i) × Poisson(λa_SH,n-j)
+
+<span class="cmt">── Aggregate into 9 outcomes ────────────────────────────────────</span>
+<span class="kw">P(H/H)</span> = Σ where HT home leading AND FT home winning
+<span class="kw">P(D/H)</span> = Σ where HT level AND FT home winning
+<span class="kw">P(D/D)</span> = Σ where HT level AND FT level  ... etc
+
+<span class="cmt">Example: Newcastle (λh=2.26) vs Wolves (λa=0.95)</span>
+λh_HT=0.99  λh_SH=1.27  λa_HT=0.42  λa_SH=0.53
+
+<span class="val">H/H</span> = 38%   <span class="val">D/H</span> = 27%   <span class="val">D/D</span> = 12%
+<span class="val">H/D</span> = 7%    <span class="val">A/H</span> = 6%    <span class="val">D/A</span> = 5%
+<span class="val">H/A</span> = 2%    <span class="val">A/D</span> = 2%    <span class="val">A/A</span> = 1%
+
+Predicted HT/FT: <span class="val">H/H</span> at 38%</div>
+  </div>
+
+  <div class="callout warning">
+    <div class="callout-title">Important caveats for HT/FT</div>
+    <div class="callout-body">The 44% HT split is a population average — individual teams deviate significantly. Some teams start quickly, others are slow starters. The bet slip shows HT/FT options with probability ≥ 25% (not 50% like result markets) because this is a 9-way market where the random baseline is ~11% — so 25% represents a genuine statistical edge.</div>
+  </div>
 </div>
 
 <div class="divider"></div>
