@@ -3054,15 +3054,23 @@
         document.getElementById("activeLeagueFlag").textContent = l.flag;
         document.getElementById("activeLeagueText").textContent = l.name;
 
-        // Pause background preload so the user-requested league gets
-        // exclusive access to the rate limiter queue right away.
-        preloadPaused = true;
-
+        // Restore this league's own gameweek — each league tracks its GW independently.
+        // autoGwCache["PL_2026"] = 3, autoGwCache["ELC_2026"] = 6 etc.
         const gwKey = `${code}_${currentSeason}`;
-        const targetGW = autoGwCache[gwKey] || null;
-        await loadLeague(code, targetGW);
+        const leagueGW = autoGwCache[gwKey] || null;
 
-        // Resume background preload for any remaining uncached leagues.
+        // If already cached at this GW, show instantly — zero API calls.
+        if (leagueGW) {
+          const cached = predictionCache[cacheKey(code, currentSeason, leagueGW)];
+          if (cached) {
+            applyCachedResult(cached, code, leagueGW);
+            return;
+          }
+        }
+
+        // Not cached yet — load it, pausing background preload so this gets priority.
+        preloadPaused = true;
+        await loadLeague(code, leagueGW);
         preloadPaused = false;
       }
 
@@ -3875,16 +3883,23 @@
           const state      = leagueReadyState[l.code];
           const isReady    = state === 'ready';
           const isLoading  = state === 'loading';
+
+          // Look up the loaded GW for this league so we can display it
+          const gwKey     = `${l.code}_${currentSeason}`;
+          const loadedGW  = autoGwCache[gwKey];
+          const gwTag     = loadedGW ? ` · GW${loadedGW}` : '';
+
           let cls = '';
           let statusCls = '';
           if (isCurrent)       { cls = 'current';  statusCls = 'current'; }
           else if (isSelected) { cls = 'selected'; statusCls = isReady ? 'ready' : isLoading ? 'loading' : ''; }
           else if (isReady)    { statusCls = 'ready'; }
           else if (isLoading)  { statusCls = 'loading'; }
-          const label = isCurrent  ? '● Current'
+
+          const label = isCurrent  ? `● Current${gwTag}`
             : isLoading            ? 'Loading…'
-            : (!pickerIsFirstVisit && isReady) ? '→ Switch'
-            : isReady              ? 'Loaded'
+            : (!pickerIsFirstVisit && isReady) ? `→ Switch${gwTag}`
+            : isReady              ? `Loaded${gwTag}`
             : isSelected           ? (pickerIsFirstVisit ? 'Selected' : 'Queued')
             : 'Select';
           const clickStyle = (!pickerIsFirstVisit && (isReady || isCurrent)) ? 'font-weight:700;color:var(--text-muted)' : 'color:var(--text-dim)';
@@ -3919,14 +3934,12 @@
         const isCurrent = code === currentLeague;
 
         if (!pickerIsFirstVisit && (isReady || isCurrent)) {
-          // Read season/GW from picker before closing
-          const gwOverride = _applyPickerInputs();
+          // Already loaded — switch instantly using the league's own cached GW.
+          // Do NOT apply picker season/GW inputs here; those only apply when
+          // loading new leagues via the confirm button.
           dismissPicker();
-          if (isCurrent) {
-            // Same league — if GW changed, reload it
-            if (gwOverride) loadLeague(code, gwOverride, { silent: false });
-          } else {
-            _switchToLeague(code, gwOverride);
+          if (!isCurrent) {
+            selectLeague(code);
           }
           return;
         }
