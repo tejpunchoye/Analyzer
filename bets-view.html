@@ -631,9 +631,6 @@ function getAiOptions(b){
   if(b.predOver25!=null&&b.predOver25>=50)     opts.push({label:'Over 2.5', key:'Over 2.5'});
   if(b.predBttsYes!=null&&b.predBttsYes>=50)  opts.push({label:'BTTS Yes', key:'BTTS Yes'});
   // Double Chance
-  if(b.predDc1X!=null&&b.predDc1X>=50) opts.push({label:'1X (Home/Draw)', key:'DC 1X'});
-  if(b.predDcX2!=null&&b.predDcX2>=50) opts.push({label:'X2 (Draw/Away)', key:'DC X2'});
-  if(b.predDc12!=null&&b.predDc12>=50) opts.push({label:'12 (No Draw)',    key:'DC 12'});
   // HT/FT — show top outcome if >= 25% (9-way market)
   if(b.predHtft){
     var htftLabels={HH:'H/H',HD:'H/D',HA:'H/A',DH:'D/H',DD:'D/D',DA:'D/A',AH:'A/H',AD:'A/D',AA:'A/A'};
