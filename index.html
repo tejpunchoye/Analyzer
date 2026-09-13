@@ -724,6 +724,18 @@
         font-weight: 600;
       }
 
+      /* ── Confluence scenario tag ── */
+      .conf-tag {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 3px 10px 3px 8px; border-radius: 20px;
+        font-size: 10.5px; font-weight: 700; font-family: var(--sans);
+        border: 1px solid; margin-bottom: 8px; cursor: default;
+      }
+      .conf-tag-level {
+        font-size: 9px; font-family: var(--mono); font-weight: 600;
+        padding: 1px 5px; border-radius: 10px; background: rgba(0,0,0,0.18);
+      }
+
       /* ── Goal market badges on cards ── */
       .market-row {
         display: flex; gap: 6px; margin-top: 7px; flex-wrap: wrap;
@@ -1700,6 +1712,7 @@
             <span style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);flex-shrink:0">Sort</span>
             <div class="filter-tabs">
               <div class="filter-tab sort-tab active" onclick="setSort(this,'confidence')">Confidence</div>
+              <div class="filter-tab sort-tab" onclick="setSort(this,'confluence')">Confluence</div>
               <div class="filter-tab sort-tab" onclick="setSort(this,'over25')">O/U ↑</div>
               <div class="filter-tab sort-tab" onclick="setSort(this,'under25')">U/O ↑</div>
               <div class="filter-tab sort-tab" onclick="setSort(this,'bttsYes')">BTTS Yes ↑</div>
@@ -2302,6 +2315,96 @@
         return r;
       }
 
+      // ── Confluence scenario detection ──────────────────────────────────
+      const SCENARIOS = {
+        homeWin: {
+          label:'Home Win', emoji:'🏠',
+          color:'var(--win)', dim:'rgba(61,220,151,0.12)', border:'rgba(61,220,151,0.3)',
+          checks:[
+            { label:'Home Win predicted',        fn:(p,gm) => p.outcome === 'home'                        },
+            { label:'BTTS No — clean sheet likely',fn:(p,gm)=> gm.btts < 45                               },
+            { label:'xG favours home team',       fn:(p,gm) => gm.xgHome > gm.xgAway                     },
+            { label:'Best score: home clean sheet',fn:(p,gm)=> gm.top5?.dc?.[0]?.away === 0               },
+          ]
+        },
+        awayWin: {
+          label:'Away Win', emoji:'✈️',
+          color:'var(--loss)', dim:'rgba(255,107,107,0.12)', border:'rgba(255,107,107,0.3)',
+          checks:[
+            { label:'Away Win predicted',         fn:(p,gm) => p.outcome === 'away'                       },
+            { label:'BTTS No — clean sheet likely',fn:(p,gm)=> gm.btts < 45                               },
+            { label:'xG favours away team',        fn:(p,gm) => gm.xgAway > gm.xgHome                     },
+            { label:'Best score: away clean sheet',fn:(p,gm)=> gm.top5?.dc?.[0]?.home === 0               },
+          ]
+        },
+        over25: {
+          label:'Over 2.5', emoji:'⚽',
+          color:'var(--accent)', dim:'var(--accent-dim)', border:'var(--accent-glow)',
+          checks:[
+            { label:'Over 2.5 predicted (≥55%)',  fn:(p,gm) => gm.over25 >= 55                            },
+            { label:'BTTS Yes (≥55%)',             fn:(p,gm) => gm.btts   >= 55                            },
+            { label:'Total xG ≥ 4.0',             fn:(p,gm) => (gm.xgHome + gm.xgAway) >= 4.0            },
+            { label:'Best score is Over 2.5',      fn:(p,gm) => gm.top5?.dc?.[0] &&
+                                                       (gm.top5.dc[0].home + gm.top5.dc[0].away) > 2      },
+          ]
+        },
+        under25: {
+          label:'Under 2.5', emoji:'🔒',
+          color:'var(--draw)', dim:'var(--draw-dim)', border:'rgba(255,201,77,0.3)',
+          checks:[
+            { label:'Under 2.5 predicted (<45%)', fn:(p,gm) => gm.over25 < 45                             },
+            { label:'BTTS No (<45%)',              fn:(p,gm) => gm.btts   < 45                             },
+            { label:'Total xG < 3.0',             fn:(p,gm) => (gm.xgHome + gm.xgAway) < 3.0             },
+            { label:'Best score is Under 2.5',     fn:(p,gm) => gm.top5?.dc?.[0] &&
+                                                       (gm.top5.dc[0].home + gm.top5.dc[0].away) <= 2     },
+          ]
+        },
+        bttsYes: {
+          label:'BTTS Yes', emoji:'🎯',
+          color:'var(--win)', dim:'rgba(61,220,151,0.12)', border:'rgba(61,220,151,0.3)',
+          checks:[
+            { label:'BTTS Yes (≥55%)',             fn:(p,gm) => gm.btts   >= 55                            },
+            { label:'Over 2.5 (≥50%)',             fn:(p,gm) => gm.over25 >= 50                            },
+            { label:'Total xG ≥ 4.0',             fn:(p,gm) => (gm.xgHome + gm.xgAway) >= 4.0            },
+            { label:'Best score: both teams score', fn:(p,gm) => gm.top5?.dc?.[0] &&
+                                                       gm.top5.dc[0].home > 0 && gm.top5.dc[0].away > 0   },
+          ]
+        },
+        bttsNo: {
+          label:'BTTS No', emoji:'🚫',
+          color:'#a0a0be', dim:'rgba(160,160,190,0.10)', border:'rgba(160,160,190,0.3)',
+          checks:[
+            { label:'BTTS No (<45%)',              fn:(p,gm) => gm.btts   < 45                             },
+            { label:'Under 2.5 (<50%)',            fn:(p,gm) => gm.over25 < 50                             },
+            { label:'Total xG < 3.0',             fn:(p,gm) => (gm.xgHome + gm.xgAway) < 3.0             },
+            { label:'Best score: one team blank',   fn:(p,gm) => gm.top5?.dc?.[0] &&
+                                                       (gm.top5.dc[0].home === 0 || gm.top5.dc[0].away === 0) },
+          ]
+        },
+      };
+
+      function detectScenarios(prediction, gm) {
+        if (!gm || gm.over25 == null) return [];
+        const results = [];
+        for (const [id, sc] of Object.entries(SCENARIOS)) {
+          const checks = sc.checks.map(ch => ({ label: ch.label, passed: ch.fn(prediction, gm) }));
+          const score  = checks.filter(c => c.passed).length;
+          if (score >= 2) {
+            results.push({
+              id, label: sc.label, emoji: sc.emoji,
+              color: sc.color, dim: sc.dim, border: sc.border,
+              checks, score,
+              level: score === 4 ? 'Full' : score === 3 ? 'Strong' : 'Partial',
+            });
+          }
+        }
+        return results.sort((a, b) => b.score - a.score);
+      }
+
+      function getTopScenario(prediction, gm) {
+        return detectScenarios(prediction, gm)[0] || null;
+      }
+
       function buildVerdict(pred, homeShort, awayShort) {
         const { outcome, homeScore: hs, awayScore: as_ } = pred;
         const diff = Math.abs(hs - as_);
@@ -2575,6 +2678,10 @@
           const gma = a.prediction.goalMarkets || {};
           const gmb = b.prediction.goalMarkets || {};
           switch (activeSort) {
+            case 'confluence':
+              const _scA = getTopScenario(a.prediction, gma);
+              const _scB = getTopScenario(b.prediction, gmb);
+              return (_scB?.score ?? 0) - (_scA?.score ?? 0);
             case 'over25':   return (gmb.over25  ?? 0) - (gma.over25  ?? 0);
             case 'under25':  return (gma.over25  ?? 100) - (gmb.over25 ?? 100); // lower over25 = higher under25
             case 'bttsYes':  return (gmb.btts    ?? 0) - (gma.btts    ?? 0);
@@ -2665,12 +2772,15 @@
             const slipId = `${match.homeTeam.id}_${match.awayTeam.id}_${currentGW}_${currentLeague}`;
             const alreadyAdded = isInSlip(slipId);
             const lowConf = topProb < 50 ? 'low-confidence' : '';
+            // Never dim a card that has full or strong confluence
+            const _confSc = getTopScenario(prediction, prediction.goalMarkets);
+            const lowConfFinal = (lowConf && _confSc?.score >= 3) ? '' : lowConf;
             const gm = prediction.goalMarkets || {};
             const hasMarketEdge = (gm.over25 != null && (gm.over25 > 55 || (100 - gm.over25) > 55))
                                 || (gm.btts   != null && (gm.btts   > 55 || (100 - gm.btts)   > 55));
             const mktHl = (!lowConf && hasMarketEdge) ? 'market-highlight' : '';
             return `
-    <div class="fixture-card pred-${outcome} ${resultCardCls} ${lowConf} ${mktHl}" onclick="openDetail(${i})">
+    <div class="fixture-card pred-${outcome} ${resultCardCls} ${lowConfFinal} ${mktHl}" onclick="openDetail(${i})">
       <div class="fixture-top">
         <div class="star-rating" title="${topProb}% confidence">${stars}</div>
         <div class="teams-row">
@@ -2700,6 +2810,19 @@
           onclick="event.stopPropagation(); addToSlip(${i}, this)"
         >${alreadyAdded ? '✓' : '+'}</button>
       </div>
+      ${(() => {
+        // Confluence tag
+        const _top = getTopScenario(prediction, prediction.goalMarkets);
+        if (!_top) return '';
+        const _allSc = detectScenarios(prediction, prediction.goalMarkets);
+        const lvlColors = { Full:'rgba(255,255,255,0.18)', Strong:'rgba(255,255,255,0.13)', Partial:'rgba(255,255,255,0.09)' };
+        return `<div class="conf-tag clickable" onclick="event.stopPropagation();openMarketModal('confluence',${i})"
+          style="color:${_top.color};background:${_top.dim};border-color:${_top.border};cursor:pointer" title="Click to see all confluence scenarios">
+          ${_top.emoji} ${_top.label}
+          <span class="conf-tag-level" style="color:${_top.color};background:${lvlColors[_top.level]}">${_top.score}/4 ${_top.level}</span>
+          ${_allSc.length > 1 ? `<span style="font-size:9px;opacity:.7">+${_allSc.length - 1}</span>` : ''}
+        </div>`;
+      })()}
       ${(() => {
         const gm = prediction.goalMarkets;
         if (!gm || gm.over25 === null) return '';
@@ -3002,125 +3125,316 @@
 
         let title = '', body = '';
 
-        if (type === 'ou25') {
+        // Build confluence check header for this market type
+        const _allScenarios = detectScenarios(p.prediction, gm);
+        const _topSc = _allScenarios[0];
+        const _confHeader = _topSc ? `
+          <div style="background:${_topSc.dim};border:1px solid ${_topSc.border};border-radius:9px;padding:12px 14px;margin-bottom:16px">
+            <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:${_topSc.color};margin-bottom:8px">
+              ${_topSc.emoji} ${_topSc.label} · ${_topSc.level} confluence (${_topSc.score}/4)
+            </div>
+            ${_topSc.checks.map(ch => `
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px;color:${ch.passed ? 'var(--text)' : 'var(--text-dim)'}">
+                <span style="font-size:12px;flex-shrink:0">${ch.passed ? '✓' : '✗'}</span>
+                ${ch.label}
+              </div>`).join('')}
+          </div>` : '';
+
+        if (type === 'confluence') {
+          title = 'Confluence Analysis';
+          const allSc = detectScenarios(p.prediction, gm);
+          if (!allSc.length) {
+            body = `<div style="text-align:center;padding:32px 16px;color:var(--text-dim);font-size:13px">
+              No strong confluence detected for this fixture.<br>
+              <span style="font-size:11px;opacity:.7">Need ≥ 2 out of 4 conditions met per scenario.</span>
+            </div>`;
+          } else {
+            const lvlColors = { Full:'rgba(255,255,255,0.18)', Strong:'rgba(255,255,255,0.13)', Partial:'rgba(255,255,255,0.09)' };
+            body = allSc.map((sc, idx) => `
+              <div style="background:${sc.dim};border:1px solid ${sc.border};border-radius:10px;padding:14px 16px;margin-bottom:10px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:16px">${sc.emoji}</span>
+                    <span style="font-size:14px;font-weight:800;color:${sc.color}">${sc.label}</span>
+                  </div>
+                  <span style="padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;
+                    color:${sc.color};background:${lvlColors[sc.level]};border:1px solid ${sc.border}">
+                    ${sc.score}/4 ${sc.level}
+                  </span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">
+                  ${sc.checks.map(ch => `
+                    <div style="display:flex;align-items:flex-start;gap:7px;padding:6px 8px;border-radius:7px;
+                      background:${ch.passed ? 'rgba(255,255,255,0.04)' : 'transparent'};
+                      border:1px solid ${ch.passed ? sc.border : 'var(--border)'}">
+                      <span style="font-size:11px;flex-shrink:0;margin-top:1px;color:${ch.passed ? sc.color : 'var(--text-dim)'}">${ch.passed ? '✓' : '✗'}</span>
+                      <span style="font-size:11px;color:${ch.passed ? 'var(--text)' : 'var(--text-dim)'};line-height:1.4">${ch.label}</span>
+                    </div>`).join('')}
+                </div>
+              </div>`).join('');
+          }
+
+        } else if (type === 'ou25') {
           title = 'Over / Under 2.5 Goals';
           const m = gm?.over25Methods || { poisson: gm?.over25, dc: gm?.over25, nb: gm?.over25 };
-          const bar = (pct, color) => `<div style="height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin:5px 0 8px">
-            <div style="height:100%;width:${pct}%;background:${color};border-radius:3px"></div></div>`;
-          body = `
-            <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;line-height:1.6">
-              Expected goals — Home <strong style="color:var(--text)">${gm?.xgHome}</strong> · Away <strong style="color:var(--text)">${gm?.xgAway}</strong>
-              ${gm?.lowSample ? ' · <span style="color:var(--draw)">⚠ Low sample (&lt;8 games)</span>' : ''}
-            </p>
-            ${['dc','poisson','nb'].map(k => {
-              const val = m[k] ?? 0;
-              const label = { dc:'Dixon-Coles ★ (primary)', poisson:'Independent Poisson', nb:'Negative Binomial' }[k];
-              const over = val, under = 100 - val;
-              const overC = val >= 50 ? 'var(--win)' : 'var(--loss)';
-              const underC = val < 50 ? 'var(--win)' : 'var(--loss)';
-              return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px 16px;margin-bottom:10px">
-                <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px">${label}</div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-                  <span style="font-size:13px;color:var(--text-muted)">Over 2.5</span>
-                  <span style="font-size:15px;font-weight:800;font-family:var(--mono);color:${overC}">${over}%</span>
-                </div>
-                ${bar(over, overC)}
-                <div style="display:flex;justify-content:space-between">
-                  <span style="font-size:13px;color:var(--text-muted)">Under 2.5</span>
-                  <span style="font-size:15px;font-weight:800;font-family:var(--mono);color:${underC}">${under}%</span>
-                </div>
-              </div>`;
-            }).join('')}`;
+          const xgTotal = ((gm?.xgHome || 0) + (gm?.xgAway || 0)).toFixed(1);
+          const ouCell = (val, labelA, labelB) => {
+            const A = val, B = 100 - val;
+            const aC = val >= 50 ? 'var(--win)' : 'var(--loss)';
+            const bC = val <  50 ? 'var(--win)' : 'var(--loss)';
+            return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 14px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+                <span style="font-size:11px;color:var(--text-muted);font-weight:500">${labelA}</span>
+                <span style="font-size:18px;font-weight:800;font-family:var(--mono);color:${aC}">${A}%</span>
+              </div>
+              <div style="height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-bottom:8px">
+                <div style="height:100%;width:${A}%;background:${aC};border-radius:2px"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-size:11px;color:var(--text-muted);font-weight:500">${labelB}</span>
+                <span style="font-size:18px;font-weight:800;font-family:var(--mono);color:${bC}">${B}%</span>
+              </div>
+            </div>`;
+          };
+          body = _confHeader + `
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+              <span style="padding:4px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--text-muted)">
+                xG ${home} <strong style="color:var(--text)">${gm?.xgHome}</strong>
+              </span>
+              <span style="padding:4px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--text-muted)">
+                xG ${away} <strong style="color:var(--text)">${gm?.xgAway}</strong>
+              </span>
+              <span style="padding:4px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--text-muted)">
+                Total xG <strong style="color:var(--text)">${xgTotal}</strong>
+              </span>
+              ${gm?.lowSample ? '<span style="padding:4px 10px;border-radius:20px;background:var(--draw-dim);border:1px solid rgba(255,201,77,.3);font-size:11px;color:var(--draw)">⚠ Low sample</span>' : ''}
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+              ${ouCell(m.dc      ?? 0, 'Over 2.5', 'Under 2.5')}
+              ${ouCell(m.poisson ?? 0, 'Over 2.5', 'Under 2.5')}
+            </div>
+            <div style="display:grid;grid-template-columns:1fr;gap:8px">
+              ${ouCell(m.nb ?? 0, 'Over 2.5', 'Under 2.5')}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px">
+              <div style="text-align:center;padding:6px;background:var(--surface2);border-radius:7px;border:1px solid var(--border)">
+                <div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px">DC ★</div>
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted)">${m.dc ?? '—'}%</div>
+              </div>
+              <div style="text-align:center;padding:6px;background:var(--surface2);border-radius:7px;border:1px solid var(--border)">
+                <div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px">Poisson</div>
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted)">${m.poisson ?? '—'}%</div>
+              </div>
+              <div style="text-align:center;padding:6px;background:var(--surface2);border-radius:7px;border:1px solid var(--border)">
+                <div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px">Neg Binom</div>
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted)">${m.nb ?? '—'}%</div>
+              </div>
+            </div>`;
 
         } else if (type === 'btts') {
           title = 'Both Teams to Score';
           const m = gm?.bttsYesMethods || { poisson: gm?.btts, dc: gm?.btts, nb: gm?.btts };
-          const bar = (pct, color) => `<div style="height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;margin:5px 0 8px">
-            <div style="height:100%;width:${pct}%;background:${color};border-radius:3px"></div></div>`;
-          body = `
-            <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;line-height:1.6">
-              xG ${home} <strong style="color:var(--text)">${gm?.xgHome}</strong> · xG ${away} <strong style="color:var(--text)">${gm?.xgAway}</strong>
-              ${gm?.lowSample ? ' · <span style="color:var(--draw)">⚠ Low sample</span>' : ''}
-            </p>
-            ${['dc','poisson','nb'].map(k => {
-              const val = m[k] ?? 0;
-              const label = { dc:'Dixon-Coles ★ (primary)', poisson:'Independent Poisson', nb:'Negative Binomial' }[k];
-              const yes = val, no = 100 - val;
-              const yesC = val >= 50 ? 'var(--win)' : 'var(--loss)';
-              const noC  = val < 50  ? 'var(--win)' : 'var(--loss)';
-              return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px 16px;margin-bottom:10px">
-                <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px">${label}</div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-                  <span style="font-size:13px;color:var(--text-muted)">BTTS Yes</span>
-                  <span style="font-size:15px;font-weight:800;font-family:var(--mono);color:${yesC}">${yes}%</span>
-                </div>
-                ${bar(yes, yesC)}
-                <div style="display:flex;justify-content:space-between">
-                  <span style="font-size:13px;color:var(--text-muted)">BTTS No</span>
-                  <span style="font-size:15px;font-weight:800;font-family:var(--mono);color:${noC}">${no}%</span>
-                </div>
-              </div>`;
-            }).join('')}`;
+          const xgTotal = ((gm?.xgHome || 0) + (gm?.xgAway || 0)).toFixed(1);
+          const bttsCell = (val) => {
+            const yes = val, no = 100 - val;
+            const yC = val >= 50 ? 'var(--win)' : 'var(--loss)';
+            const nC = val <  50 ? 'var(--win)' : 'var(--loss)';
+            return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:13px 14px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+                <span style="font-size:11px;color:var(--text-muted);font-weight:500">BTTS Yes</span>
+                <span style="font-size:18px;font-weight:800;font-family:var(--mono);color:${yC}">${yes}%</span>
+              </div>
+              <div style="height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-bottom:8px">
+                <div style="height:100%;width:${yes}%;background:${yC};border-radius:2px"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-size:11px;color:var(--text-muted);font-weight:500">BTTS No</span>
+                <span style="font-size:18px;font-weight:800;font-family:var(--mono);color:${nC}">${no}%</span>
+              </div>
+            </div>`;
+          };
+          body = _confHeader + `
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+              <span style="padding:4px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--text-muted)">
+                xG ${home} <strong style="color:var(--text)">${gm?.xgHome}</strong>
+              </span>
+              <span style="padding:4px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--text-muted)">
+                xG ${away} <strong style="color:var(--text)">${gm?.xgAway}</strong>
+              </span>
+              <span style="padding:4px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--text-muted)">
+                Total xG <strong style="color:var(--text)">${xgTotal}</strong>
+              </span>
+              ${gm?.lowSample ? '<span style="padding:4px 10px;border-radius:20px;background:var(--draw-dim);border:1px solid rgba(255,201,77,.3);font-size:11px;color:var(--draw)">⚠ Low sample</span>' : ''}
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+              ${bttsCell(m.dc      ?? 0)}
+              ${bttsCell(m.poisson ?? 0)}
+            </div>
+            <div style="display:grid;grid-template-columns:1fr;gap:8px">
+              ${bttsCell(m.nb ?? 0)}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px">
+              <div style="text-align:center;padding:6px;background:var(--surface2);border-radius:7px;border:1px solid var(--border)">
+                <div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px">DC ★</div>
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted)">${m.dc ?? '—'}%</div>
+              </div>
+              <div style="text-align:center;padding:6px;background:var(--surface2);border-radius:7px;border:1px solid var(--border)">
+                <div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px">Poisson</div>
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted)">${m.poisson ?? '—'}%</div>
+              </div>
+              <div style="text-align:center;padding:6px;background:var(--surface2);border-radius:7px;border:1px solid var(--border)">
+                <div style="font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-bottom:3px">Neg Binom</div>
+                <div style="font-size:11px;font-weight:700;color:var(--text-muted)">${m.nb ?? '—'}%</div>
+              </div>
+            </div>`;
 
         } else if (type === 'score') {
           title = 'Expected Scorelines';
           const t5 = gm?.top5 || {};
           const scoreHT = gm?.scoreHT;
           const scoreE  = gm?.scoreE;
-          const methods = [
-            { key:'dc',      label:'Dixon-Coles ★ (primary)', scores: t5.dc      },
-            { key:'bv',      label:'Bivariate Poisson',        scores: t5.bv      },
-            { key:'poisson', label:'Independent Poisson',      scores: t5.poisson },
-            { key:'nb',      label:'Negative Binomial',        scores: t5.nb      },
-            { key:'e',       label:'Result-Weighted (Method 7)',scores: scoreE    },
-          ].filter(m => m.scores && m.scores.length > 0);
+          const xgTotal = ((gm?.xgHome || 0) + (gm?.xgAway || 0)).toFixed(1);
 
-          const scoreTable = (scores) => scores.map((s, idx) =>
-            `<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:7px;
-              background:${idx===0?'var(--accent-dim)':'var(--surface2)'};border:1px solid ${idx===0?'var(--accent-glow)':'var(--border)'};margin-bottom:5px">
-              <span style="font-size:16px;font-weight:800;font-family:var(--mono);color:${idx===0?'var(--accent)':'var(--text)'};width:36px">${s.home}–${s.away}</span>
-              <div style="flex:1;height:4px;background:var(--surface3);border-radius:2px;overflow:hidden">
-                <div style="height:100%;width:${s.prob * 4}%;background:${idx===0?'var(--accent)':'var(--border-strong)'};border-radius:2px"></div>
-              </div>
-              <span style="font-size:12px;font-weight:700;font-family:var(--mono);color:${idx===0?'var(--accent)':'var(--text-muted)'}">${s.prob}%</span>
-            </div>`
-          ).join('');
+          // Compact scoreline card — shows top 5 in a tight list
+          const scoreCard = (label, scores, isPrimary) => {
+            if (!scores || !scores.length) return '';
+            const topProb = scores[0].prob;
+            const rows = scores.slice(0, 5).map((s, idx) => {
+              const barW = topProb > 0 ? Math.round(s.prob / topProb * 100) : 0;
+              const isFirst = idx === 0;
+              return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0;
+                border-bottom:1px solid var(--border);${isFirst ? 'padding-bottom:7px;margin-bottom:2px' : ''}">
+                <span style="font-size:${isFirst ? '15px' : '13px'};font-weight:800;font-family:var(--mono);
+                  color:${isFirst ? (isPrimary ? 'var(--accent)' : 'var(--text)') : 'var(--text-muted)'};
+                  min-width:32px;flex-shrink:0">${s.home}–${s.away}</span>
+                <div style="flex:1;height:3px;background:var(--surface3);border-radius:2px;overflow:hidden">
+                  <div style="height:100%;width:${barW}%;background:${isFirst ? (isPrimary ? 'var(--accent)' : 'var(--text-dim)') : 'var(--border-strong)'};border-radius:2px"></div>
+                </div>
+                <span style="font-size:${isFirst ? '12px' : '10.5px'};font-weight:700;font-family:var(--mono);
+                  color:${isFirst ? (isPrimary ? 'var(--accent)' : 'var(--text)') : 'var(--text-dim)'};
+                  flex-shrink:0">${s.prob}%</span>
+              </div>`;
+            }).join('');
+            return `<div style="background:${isPrimary ? 'var(--accent-dim)' : 'var(--surface2)'};
+              border:1px solid ${isPrimary ? 'var(--accent-glow)' : 'var(--border)'};
+              border-radius:10px;padding:12px 13px">
+              <div style="font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+                color:${isPrimary ? 'var(--accent)' : 'var(--text-dim)'};margin-bottom:9px">${label}</div>
+              ${rows}
+            </div>`;
+          };
 
-          body = `
-            <p style="font-size:12px;color:var(--text-dim);margin-bottom:4px">
-              xG ${home} <strong style="color:var(--text)">${gm?.xgHome}</strong> · xG ${away} <strong style="color:var(--text)">${gm?.xgAway}</strong>
-            </p>
-            ${scoreHT ? `<div style="background:var(--draw-dim);border:1px solid rgba(255,201,77,.3);border-radius:9px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:12px;color:var(--draw);font-weight:600">Predicted Half-Time Score</span>
-              <span style="font-size:18px;font-weight:800;font-family:var(--mono);color:var(--draw)">${scoreHT.home}–${scoreHT.away} <span style="font-size:11px;opacity:.7">${scoreHT.prob}%</span></span>
+          body = _confHeader + `
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+              <span style="padding:4px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--text-muted)">
+                xG ${home} <strong style="color:var(--text)">${gm?.xgHome}</strong>
+              </span>
+              <span style="padding:4px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--text-muted)">
+                xG ${away} <strong style="color:var(--text)">${gm?.xgAway}</strong>
+              </span>
+              <span style="padding:4px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--text-muted)">
+                Total xG <strong style="color:var(--text)">${xgTotal}</strong>
+              </span>
+              ${gm?.lowSample ? '<span style="padding:4px 10px;border-radius:20px;background:var(--draw-dim);border:1px solid rgba(255,201,77,.3);font-size:11px;color:var(--draw)">⚠ Low sample</span>' : ''}
+            </div>
+            ${scoreHT ? `<div style="background:var(--draw-dim);border:1px solid rgba(255,201,77,.3);border-radius:9px;
+              padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11.5px;color:var(--draw);font-weight:700">Predicted Half-Time</span>
+              <span style="font-size:20px;font-weight:800;font-family:var(--mono);color:var(--draw)">
+                ${scoreHT.home}–${scoreHT.away}
+                <span style="font-size:11px;opacity:.65">${scoreHT.prob}%</span>
+              </span>
             </div>` : ''}
-            ${methods.map(m => `
-              <div style="margin-bottom:16px">
-                <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px">${m.label}</div>
-                ${scoreTable(m.scores)}
-              </div>`).join('')}`;
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+              ${scoreCard('Dixon-Coles ★', t5.dc, true)}
+              ${scoreCard('Bivariate Poisson', t5.bv, false)}
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+              ${scoreCard('Independent Poisson', t5.poisson, false)}
+              ${scoreCard('Negative Binomial', t5.nb, false)}
+            </div>
+            ${scoreE && scoreE.length ? `<div style="margin-top:4px">
+              ${scoreCard('Result-Weighted (Method 7)', scoreE, false)}
+            </div>` : ''}`;
 
         } else if (type === 'htft') {
           title = 'Half Time / Full Time';
           const htft = gm?.htft || {};
           const labels = { HH:'H/H',HD:'H/D',HA:'H/A',DH:'D/H',DD:'D/D',DA:'D/A',AH:'A/H',AD:'A/D',AA:'A/A' };
-          const descs  = { HH:`${home} leads both halves`,HD:`${home} leads HT · Draw FT`,HA:`${home} leads HT · ${away} wins`,
-                           DH:`Draw HT · ${home} wins`,DD:'Draw at HT and FT',DA:`Draw HT · ${away} wins`,
-                           AH:`${away} leads HT · ${home} wins`,AD:`${away} leads HT · Draw FT`,AA:`${away} leads both halves` };
+          const descs  = {
+            HH:`${home} leads both`, HD:`${home} HT · Draw FT`, HA:`${home} HT · ${away} FT`,
+            DH:`Draw HT · ${home}`,  DD:`Draw both halves`,      DA:`Draw HT · ${away}`,
+            AH:`${away} HT · ${home}`,AD:`${away} HT · Draw FT`, AA:`${away} leads both`
+          };
           const sorted = Object.entries(htft).sort(([,a],[,b]) => b - a);
           const topProb = sorted[0]?.[1] || 1;
-          body = sorted.map(([k, v]) => {
+          const maxProb = sorted[0]?.[1] || 1;
+
+          // HT axis labels
+          const htRow = ['H','D','A'];  // HT state (first char of key)
+          const ftRow = ['H','D','A'];  // FT state (second char of key)
+
+          // Build 3×3 grid — HT result as rows, FT result as columns
+          const gridCell = (k) => {
+            const v = htft[k] ?? 0;
             const isTop = v === topProb;
-            return `<div style="display:flex;align-items:center;gap:10px;padding:9px 13px;border-radius:8px;
-              background:${isTop?'var(--accent-dim)':'var(--surface2)'};border:1px solid ${isTop?'var(--accent-glow)':'var(--border)'};margin-bottom:6px">
-              <span style="font-size:13px;font-weight:800;font-family:var(--mono);color:${isTop?'var(--accent)':'var(--text)'};width:38px;flex-shrink:0">${labels[k]}</span>
-              <span style="font-size:11.5px;color:var(--text-dim);flex:1">${descs[k]}</span>
-              <div style="width:70px;height:4px;background:var(--surface3);border-radius:2px;flex-shrink:0;overflow:hidden">
+            const intensity = maxProb > 0 ? v / maxProb : 0;
+            const bg = isTop
+              ? 'var(--accent-dim)'
+              : intensity > 0.5
+              ? 'rgba(124,116,255,0.07)'
+              : 'var(--surface2)';
+            const border = isTop ? 'var(--accent-glow)' : 'var(--border)';
+            return `<div style="background:${bg};border:1px solid ${border};border-radius:9px;
+              padding:10px 8px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px">
+              <div style="font-size:13px;font-weight:800;font-family:var(--mono);
+                color:${isTop ? 'var(--accent)' : 'var(--text)'}">${labels[k]}</div>
+              <div style="font-size:16px;font-weight:800;font-family:var(--mono);
+                color:${isTop ? 'var(--accent)' : v >= 10 ? 'var(--text)' : 'var(--text-dim)'}">
+                ${v}%
+              </div>
+              <div style="width:100%;height:3px;background:var(--surface3);border-radius:2px;overflow:hidden">
+                <div style="height:100%;width:${Math.round(intensity*100)}%;background:${isTop?'var(--accent)':'var(--border-strong)'};border-radius:2px"></div>
+              </div>
+            </div>`;
+          };
+
+          // Ranked list below grid
+          const rankedList = sorted.slice(0, 5).map(([k, v], idx) => {
+            const isTop = idx === 0;
+            return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;
+              background:${isTop?'var(--accent-dim)':'var(--surface2)'};border:1px solid ${isTop?'var(--accent-glow)':'var(--border)'};margin-bottom:5px">
+              <span style="font-size:13px;font-weight:800;font-family:var(--mono);color:${isTop?'var(--accent)':'var(--text)'};width:34px;flex-shrink:0">${labels[k]}</span>
+              <span style="font-size:11px;color:var(--text-dim);flex:1">${descs[k]}</span>
+              <div style="width:60px;height:3px;background:var(--surface3);border-radius:2px;overflow:hidden;flex-shrink:0">
                 <div style="height:100%;width:${Math.round(v/topProb*100)}%;background:${isTop?'var(--accent)':'var(--border-strong)'};border-radius:2px"></div>
               </div>
-              <span style="font-size:13px;font-weight:700;font-family:var(--mono);color:${isTop?'var(--accent)':'var(--text-muted)'};width:32px;text-align:right;flex-shrink:0">${v}%</span>
+              <span style="font-size:12px;font-weight:700;font-family:var(--mono);color:${isTop?'var(--accent)':'var(--text-muted)'};width:30px;text-align:right;flex-shrink:0">${v}%</span>
             </div>`;
           }).join('');
+
+          body = _confHeader + `
+            <div style="margin-bottom:10px">
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px">
+                <div style="text-align:center;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);padding:4px 0">FT: Home</div>
+                <div style="text-align:center;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);padding:4px 0">FT: Draw</div>
+                <div style="text-align:center;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);padding:4px 0">FT: Away</div>
+              </div>
+              <div style="display:grid;grid-template-columns:18px 1fr;gap:6px;align-items:start">
+                <div style="display:grid;grid-template-rows:repeat(3,1fr);gap:6px;align-items:center">
+                  <div style="font-size:9px;font-weight:800;color:var(--text-dim);text-align:center;writing-mode:vertical-lr;transform:rotate(180deg);height:100%;display:flex;align-items:center;justify-content:center">HT: H</div>
+                  <div style="font-size:9px;font-weight:800;color:var(--text-dim);text-align:center;writing-mode:vertical-lr;transform:rotate(180deg);height:100%;display:flex;align-items:center;justify-content:center">HT: D</div>
+                  <div style="font-size:9px;font-weight:800;color:var(--text-dim);text-align:center;writing-mode:vertical-lr;transform:rotate(180deg);height:100%;display:flex;align-items:center;justify-content:center">HT: A</div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+                  ${gridCell('HH')}${gridCell('HD')}${gridCell('HA')}
+                  ${gridCell('DH')}${gridCell('DD')}${gridCell('DA')}
+                  ${gridCell('AH')}${gridCell('AD')}${gridCell('AA')}
+                </div>
+              </div>
+            </div>
+            <div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;margin-top:14px">Top 5 Ranked</div>
+            ${rankedList}`;
         }
 
         // Build and show modal
@@ -3132,16 +3446,22 @@
         modal.style.cssText = 'position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,0.82);display:flex;align-items:flex-end;justify-content:center;padding:0';
         modal.innerHTML = `
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px 18px 0 0;
-            width:100%;max-width:580px;max-height:92vh;overflow-y:auto;padding:20px 20px 32px;
-            border-bottom:none;-webkit-overflow-scrolling:touch">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-              <div>
-                <div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">${home} vs ${away}</div>
-                <div style="font-size:18px;font-weight:800;color:var(--text)">${title}</div>
+            width:100%;max-width:580px;max-height:92vh;display:flex;flex-direction:column;border-bottom:none">
+            <!-- Sticky header — always visible -->
+            <div style="padding:18px 18px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
+              background:var(--surface);border-radius:18px 18px 0 0;position:sticky;top:0;z-index:1">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+                <div>
+                  <div style="font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">${home} vs ${away}</div>
+                  <div style="font-size:18px;font-weight:800;color:var(--text)">${title}</div>
+                </div>
+                <button onclick="closeMarketModal(true)" style="width:32px;height:32px;border-radius:9px;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">✕</button>
               </div>
-              <button onclick="closeMarketModal(true)" style="width:30px;height:30px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
             </div>
-            <div style="margin-top:16px">${body}</div>
+            <!-- Scrollable body -->
+            <div style="padding:16px 18px 32px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1">
+              ${body}
+            </div>
           </div>`;
 
         modal.addEventListener('click', (e) => { if (e.target === modal) closeMarketModal(true); });
