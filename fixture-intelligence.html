@@ -767,7 +767,7 @@ async function fetchTeamRecent(teamId, season, standings, beforeDate) {
     // The API returns matches in ascending date order — reverse so most
     // recent is first, then keep the last 10.
     const sorted = (data.matches || []).slice().sort((a, b) => new Date(b.utcDate) - new Date(a.utcDate));
-    const matches = sorted.slice(0, 10).map(m => {
+    const matches = sorted.slice(0, 5).map(m => {
       const isHome = m.homeTeam.id === teamId;
       const oppId = isHome ? m.awayTeam.id : m.homeTeam.id;
       const oppRank = standings?.map?.[oppId]?.position || Math.ceil((standings?.total || 20) / 2);
